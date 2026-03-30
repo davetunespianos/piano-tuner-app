@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../lib/supabase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,20 @@ export default function AdminDashboard() {
         <button onClick={handleSignOut} className="signout-btn">Sign Out</button>
       </div>
       <div className="admin-content">
-        <p>Welcome, Dave. Your dashboard is ready to be built out.</p>
+        <div className="dashboard-grid">
+          <Link href="/admin/clients" className="dashboard-card">
+            <div className="dashboard-card-title">Clients</div>
+            <div className="dashboard-card-sub">View and manage client records</div>
+          </Link>
+          <div className="dashboard-card disabled">
+            <div className="dashboard-card-title">Appointments</div>
+            <div className="dashboard-card-sub">Coming soon</div>
+          </div>
+          <div className="dashboard-card disabled">
+            <div className="dashboard-card-title">Invoices</div>
+            <div className="dashboard-card-sub">Coming soon</div>
+          </div>
+        </div>
       </div>
     </div>
   );
