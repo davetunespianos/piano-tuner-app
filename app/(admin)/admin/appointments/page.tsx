@@ -1,0 +1,166 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "../../../../lib/supabase";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+type Appointment = {
+  id: string;
+  appointment_date: string;
+  service_type: string;
+  status: string;
+  notes: string | null;
+  clients: {
+    first_name: string;
+    last_name: string | null;
+    company_name: string | null;
+  };
+  pianos: {
+    make: string | null;
+    model: string | null;
+    description: string | null;
+  } | null;
+};
+
+export default function AppointmentList() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("upcoming");
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push("/admin/login");
+      } else {
+        fetchAppointments();
+      }
+    });
+  }, [router]);
+
+  async function fetchAppointments() {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("appointments")
+      .select(`
+        id,
+        appointment_date,
+        service_type,
+        status,
+        notes,
+        clients (first_name, last_name, company_name),
+        pianos (make, model, type)
+      `)
+      .order("appointment_date", { ascending: true });
+
+    console.log("appointments data:", data);
+    console.log("appointments error:", error);
+
+    if (!error && data) setAppointments(data as unknown as Appointment[]);
+    setLoading(false);
+  }
+
+  function clientName(a: Appointment) {
+    if (a.clients.company_name) return a.clients.company_name;
+    return [a.clients.first_name, a.clients.last_name].filter(Boolean).join(" ");
+  }
+
+  function pianoName(a: Appointment) {
+    if (!a.pianos) return "—";
+    return [a.pianos.make, a.pianos.model].filter(Boolean).join(" ") || a.pianos.description || "—";
+  }
+
+  function formatDate(dateStr: string) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  }
+
+  function formatTime(dateStr: string) {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const filtered = appointments.filter((a) => {
+    const date = new Date(a.appointment_date);
+    if (filter === "upcoming") return date >= now;
+    if (filter === "past") return date < now;
+    return true;
+  });
+
+  if (loading) return <div className="admin-loading">Loading appointments...</div>;
+ return (
+    <div className="admin-wrapper">
+      <div className="admin-header">
+        <h1>Appointments</h1>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <Link href="/admin/dashboard" className="admin-back">Dashboard</Link>
+          <Link href="/admin/appointments/new" className="admin-btn">+ New Appointment</Link>
+        </div>
+      </div>
+      <div className="admin-content">
+        <div className="filter-tabs">
+          <button
+            className={filter === "upcoming" ? "filter-tab active" : "filter-tab"}
+            onClick={() => setFilter("upcoming")}
+          >
+            Upcoming
+          </button>
+          <button
+            className={filter === "past" ? "filter-tab active" : "filter-tab"}
+            onClick={() => setFilter("past")}
+          >
+            Past
+          </button>
+          <button
+            className={filter === "all" ? "filter-tab active" : "filter-tab"}
+            onClick={() => setFilter("all")}
+          >
+            All
+          </button>
+        </div>
+        {filtered.length === 0 ? (
+          <p style={{ color: "#888", marginTop: "2rem" }}>
+            {filter === "upcoming" ? "No upcoming appointments." : "No appointments found."}
+          </p>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Client</th>
+                <th>Piano</th>
+                <th>Service</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((a) => (
+                <tr
+                  key={a.id}
+                  onClick={() => router.push(`/admin/appointments/${a.id}`)}
+                  className="admin-table-row"
+                >
+                  <td>{formatDate(a.appointment_date)}</td>
+                  <td>{formatTime(a.appointment_date)}</td>
+                  <td>{clientName(a)}</td>
+                  <td>{pianoName(a)}</td>
+                  <td>{a.service_type}</td>
+                  <td>
+                    <span className={`status-badge status-${a.status.toLowerCase()}`}>
+                      {a.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+} 

@@ -40,11 +40,11 @@ export default function AdminDashboard() {
             <div className="dashboard-card-title">Clients</div>
             <div className="dashboard-card-sub">View and manage client records</div>
           </Link>
-          <div className="dashboard-card disabled">
+          <Link href="/admin/appointments" className="dashboard-card">
             <div className="dashboard-card-title">Appointments</div>
-            <div className="dashboard-card-sub">Coming soon</div>
-          </div>
-          <div className="dashboard-card disabled">
+            <div className="dashboard-card-sub">View and manage appointments</div>
+          </Link>
+            <div className="dashboard-card disabled">
             <div className="dashboard-card-title">Invoices</div>
             <div className="dashboard-card-sub">Coming soon</div>
           </div>
