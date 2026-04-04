@@ -89,6 +89,20 @@ export default function AppointmentRecord() {
     return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   }
 
+  async function handleDelete() {
+    if (!confirm("Are you sure you want to delete this appointment? This cannot be undone.")) return;
+
+    await fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appointmentId: id, action: "delete" }),
+    });
+
+    const supabase = createClient();
+    await supabase.from("appointments").delete().eq("id", id);
+    router.push("/admin/appointments");
+  }
+  
   if (loading) return <div className="admin-loading">Loading appointment...</div>;
   if (!appointment) return <div className="admin-loading">Appointment not found.</div>;
  return (
@@ -97,6 +111,7 @@ export default function AppointmentRecord() {
         <h1>{formatDate(appointment.appointment_date)}</h1>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
           <Link href="/admin/appointments" className="admin-back">Back to Appointments</Link>
+          <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
           <Link href={`/admin/appointments/${id}/edit`} className="admin-btn">Edit Appointment</Link>
         </div>
       </div>

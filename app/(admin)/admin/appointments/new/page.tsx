@@ -102,6 +102,21 @@ export default function NewAppointment() {
       setError("Error saving appointment. Please try again.");
       setSaving(false);
     } else {
+      const { data: newAppt } = await supabase
+        .from("appointments")
+        .select("id")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (newAppt) {
+        await fetch("/api/calendar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appointmentId: newAppt.id, action: "sync" }),
+        });
+      }
+
       router.push("/admin/appointments");
     }
   }
@@ -184,12 +199,13 @@ export default function NewAppointment() {
               </div>
               <div className="form-field">
                 <label>Time <span className="form-required">*</span></label>
-                <select name="appointment_time" value={form.appointment_time} onChange={handleChange} required>
-                  <option value="">Select a time...</option>
-                  <option value="09:00">9:00 AM</option>
-                  <option value="12:00">12:00 PM</option>
-                  <option value="15:00">3:00 PM</option>
-                </select>
+                <input
+                  type="time"
+                  name="appointment_time"
+                  value={form.appointment_time}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div className="form-field">
                 <label>Duration (minutes)</label>

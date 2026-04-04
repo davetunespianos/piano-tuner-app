@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const connected = searchParams.get("connected");
+  const connError = searchParams.get("error");
 
   useEffect(() => {
     const supabase = createClient();
@@ -44,9 +47,32 @@ export default function AdminDashboard() {
             <div className="dashboard-card-title">Appointments</div>
             <div className="dashboard-card-sub">View and manage appointments</div>
           </Link>
-            <div className="dashboard-card disabled">
+          <div className="dashboard-card disabled">
             <div className="dashboard-card-title">Invoices</div>
             <div className="dashboard-card-sub">Coming soon</div>
+          </div>
+        </div>
+        <div style={{ marginTop: "2rem" }}>
+          <div className="record-section">
+            <div className="record-section-header">
+              <h2>Google Integration</h2>
+            </div>
+            {connected && (
+              <p style={{ color: "#2e7d32", fontWeight: 600, marginBottom: "1rem" }}>
+                Google Calendar connected successfully!
+              </p>
+            )}
+            {connError && (
+              <p style={{ color: "#c62828", fontWeight: 600, marginBottom: "1rem" }}>
+                Connection failed. Please try again.
+              </p>
+            )}
+            <p style={{ color: "#666", fontSize: "0.95rem", marginBottom: "1rem" }}>
+              Connect your Google account to enable Calendar sync and Gmail reminders.
+            </p>
+            <a href="/api/google/auth" className="admin-btn" style={{ display: "inline-block" }}>
+              Connect Google Calendar
+            </a>
           </div>
         </div>
       </div>

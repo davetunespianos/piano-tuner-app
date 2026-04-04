@@ -693,3 +693,16 @@ footer a:hover { text-decoration: underline; }
   background: #f4f4f4;
   color: #aaa;
 }
+.admin-btn-danger {
+  background: #c62828;
+  color: #fff;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+.admin-btn-danger:hover { background: #a32020; }
