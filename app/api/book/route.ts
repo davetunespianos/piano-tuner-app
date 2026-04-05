@@ -1,3 +1,4 @@
+import { sendEmail, confirmationEmailBody } from "../../../lib/gmail";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "../../../lib/supabase-server";
 import { createCalendarEvent } from "../../../lib/calendar";
@@ -112,6 +113,32 @@ export async function POST(request: NextRequest) {
         .eq("id", newAppt.id);
     } catch (calError) {
       console.error("Calendar sync failed:", calError);
+    }
+
+    try {
+      const formattedDate = new Date(`${date}T${time}:00`).toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric", year: "numeric"
+      });
+      const formattedTime = (() => {
+        const [hours] = time.split(":");
+        const h = parseInt(hours);
+        const ampm = h >= 12 ? "PM" : "AM";
+        const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
+        return `${hour}:00 ${ampm}`;
+      })();
+
+      await sendEmail({
+        to: email,
+        subject: `Your Piano Service Appointment Has Been Added To My Calendar`,
+        body: confirmationEmailBody({
+          firstName: first_name,
+          date: formattedDate,
+          time: formattedTime,
+          serviceType: service_type,
+        }),
+      });
+    } catch (emailError) {
+      console.error("Confirmation email failed:", emailError);
     }
 
     return NextResponse.json({ success: true });

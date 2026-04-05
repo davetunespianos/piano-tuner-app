@@ -115,6 +115,12 @@ export default function NewAppointment() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ appointmentId: newAppt.id, action: "sync" }),
         });
+
+        await fetch("/api/confirm-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appointmentId: newAppt.id }),
+        });
       }
 
       router.push("/admin/appointments");
