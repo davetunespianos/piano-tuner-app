@@ -74,7 +74,7 @@ export default function ClientRecord() {
       .from("appointments")
       .select("id, appointment_date, service_type, status")
       .eq("client_id", id)
-      .order("appointment_date", { ascending: false });
+      .order("appointment_date", { ascending: true });
 
       if (clientData) setClient(clientData);
       if (pianoData) setPianos(pianoData);
