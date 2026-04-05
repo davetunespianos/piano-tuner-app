@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
 
     const now = new Date();
-    const in47Hours = new Date(now.getTime() + 47 * 60 * 60 * 1000);
-    const in49Hours = new Date(now.getTime() + 49 * 60 * 60 * 1000);
+    const in46Hours30Min = new Date(now.getTime() + ((48 * 60) - 90) * 60 * 1000);
+    const in49Hours30Min = new Date(now.getTime() + ((48 * 60) + 90) * 60 * 1000);
 
     const { data: appointments } = await supabase
       .from("appointments")
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
         clients (first_name, email)
       `)
       .eq("status", "Scheduled")
-      .gte("appointment_date", in47Hours.toISOString())
-      .lte("appointment_date", in49Hours.toISOString());
+      .gte("appointment_date", in46Hours30Min.toISOString())
+      .lte("appointment_date", in49Hours30Min.toISOString());
 
     if (!appointments || appointments.length === 0) {
       return NextResponse.json({ success: true, sent: 0 });
