@@ -17,6 +17,7 @@ export default function EditClient() {
     first_name: "",
     last_name: "",
     email: "",
+    alternate_email: "",
     phone: "",
     address: "",
     city: "",
@@ -50,6 +51,7 @@ export default function EditClient() {
         first_name: data.first_name || "",
         last_name: data.last_name || "",
         email: data.email || "",
+        alternate_email: data.alternate_email || "",
         phone: data.phone || "",
         address: data.address || "",
         city: data.city || "",
@@ -144,6 +146,10 @@ export default function EditClient() {
               <div className="form-field">
                 <label>Email</label>
                 <input name="email" type="email" value={form.email} onChange={handleChange} />
+              </div>
+              <div className="form-field">
+                <label>Alternate Email</label>
+                <input name="alternate_email" type="email" value={form.alternate_email} onChange={handleChange} />
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ type Client = {
   first_name: string;
   last_name: string | null;
   email: string | null;
+  alternate_email: string | null;
   phone: string | null;
   address: string | null;
   city: string | null;
@@ -104,6 +105,14 @@ export default function ClientRecord() {
     return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   }
 
+  async function handleDelete() {
+    if (!confirm("Are you sure you want to delete this client? This will also delete all their pianos and appointments. This cannot be undone.")) return;
+
+    const supabase = createClient();
+    await supabase.from("clients").delete().eq("id", id);
+    router.push("/admin/clients");
+  }
+  
   if (loading) return <div className="admin-loading">Loading client...</div>;
   if (!client) return <div className="admin-loading">Client not found.</div>;
  return (
@@ -112,6 +121,7 @@ export default function ClientRecord() {
         <h1>{displayName(client)}</h1>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
           <Link href="/admin/clients" className="admin-back">Back to Clients</Link>
+          <button onClick={handleDelete} className="admin-btn-danger">Delete Client</button>
           <Link href={`/admin/clients/${id}/edit`} className="admin-btn">Edit Client</Link>
         </div>
       </div>
@@ -147,6 +157,16 @@ export default function ClientRecord() {
                 {client.email
                   ? <a href={`mailto:${client.email}`} style={{ color: "#1a1a1a" }}>{client.email}</a>
                   : "—"}
+                {client.alternate_email && (
+                  <div className="record-field">
+                    <span className="record-label">Alternate Email</span>
+                    <span className="record-value">
+                      <a href={`mailto:${client.alternate_email}`} style={{ color: "#1a1a1a" }}>
+                        {client.alternate_email}
+                      </a>
+                    </span>
+                  </div>
+                )}
               </span>
             </div>
             <div className="record-field">

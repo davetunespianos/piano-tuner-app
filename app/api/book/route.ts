@@ -56,7 +56,16 @@ export async function POST(request: NextRequest) {
     }
 
     let pianoId: string | null = null;
-    if (piano_make || piano_model || piano_type) {
+
+    const { data: existingPianos } = await supabase
+      .from("pianos")
+      .select("id")
+      .eq("client_id", clientId)
+      .limit(1);
+
+    if (existingPianos && existingPianos.length > 0) {
+      pianoId = existingPianos[0].id;
+    } else if (piano_make || piano_model || piano_type) {
       const { data: newPiano } = await supabase
         .from("pianos")
         .insert([{

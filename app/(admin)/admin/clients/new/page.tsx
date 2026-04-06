@@ -14,6 +14,7 @@ export default function NewClient() {
     first_name: "",
     last_name: "",
     email: "",
+    alternate_email: "",
     phone: "",
     address: "",
     city: "",
@@ -50,6 +51,7 @@ export default function NewClient() {
       first_name: form.first_name,
       last_name: form.last_name || null,
       email: form.email || null,
+      alternate_email: form.alternate_email || null,
       phone: form.phone || null,
       address: form.address || null,
       city: form.city || null,
@@ -100,6 +102,10 @@ export default function NewClient() {
               <div className="form-field">
                 <label>Email</label>
                 <input name="email" type="email" value={form.email} onChange={handleChange} />
+              </div>
+              <div className="form-field">
+                <label>Alternate Email</label>
+                <input name="alternate_email" type="email" value={form.alternate_email} onChange={handleChange} />
               </div>
             </div>
           </div>
