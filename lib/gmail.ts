@@ -78,7 +78,7 @@ export function reminderEmailBody({
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #222; line-height: 1.6;">
       <p>Hi ${firstName},</p>
-      <p>Your piano service appointment is scheduled for <strong>${date}</strong> at <strong>${time}</strong>.</p>
+      <p>This is a reminder of your upcoming piano service appointment, scheduled for <strong>${date}</strong> at <strong>${time}</strong>.</p>
       <p>If, for some reason, this date and time no longer work for you, please email me at <strong>davetunespianos@gmail.com</strong> or text <strong>734-812-8096</strong> as soon as possible to request a date and time change.</p>
       <p>Thank you!</p>
       <p style="margin-top: 1rem;">
