@@ -125,16 +125,16 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const formattedDate = new Date(`${date}T${time}:00`).toLocaleDateString("en-US", {
-        weekday: "long", month: "long", day: "numeric", year: "numeric"
+      const apptDate = new Date(`${date}T${time}:00`);
+      const formattedDate = apptDate.toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric", year: "numeric",
+        timeZone: "America/Detroit",
       });
-      const formattedTime = (() => {
-        const [hours] = time.split(":");
-        const h = parseInt(hours);
-        const ampm = h >= 12 ? "PM" : "AM";
-        const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-        return `${hour}:00 ${ampm}`;
-      })();
+      const formattedTime = apptDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/Detroit",
+      });
 
       await sendEmail({
         to: email,

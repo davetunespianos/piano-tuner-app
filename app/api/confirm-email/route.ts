@@ -23,14 +23,16 @@ export async function POST(request: NextRequest) {
     if (!client?.email) return NextResponse.json({ success: true, skipped: "no email" });
 
     const formattedDate = new Date(appt.appointment_date).toLocaleDateString("en-US", {
-      weekday: "long", month: "long", day: "numeric", year: "numeric"
+      weekday: "long", month: "long", day: "numeric", year: "numeric",
+      timeZone: "America/Detroit",
     });
 
     const d = new Date(appt.appointment_date);
-    const h = d.getHours();
-    const ampm = h >= 12 ? "PM" : "AM";
-    const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-    const formattedTime = `${hour}:00 ${ampm}`;
+    const formattedTime = d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Detroit",
+    });
 
     await sendEmail({
       to: client.email,
