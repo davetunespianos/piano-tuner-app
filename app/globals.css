@@ -706,3 +706,30 @@ footer a:hover { text-decoration: underline; }
   transition: background 0.2s;
 }
 .admin-btn-danger:hover { background: #a32020; }
+.status-draft {
+  background: #f4f4f4;
+  color: #666;
+}
+.status-sent {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.status-paid {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.status-overdue {
+  background: #fce4ec;
+  color: #c62828;
+}
+/* INVOICE PREVIEW */
+.invoice-preview {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 2rem;
+}
+.status-open {
+  background: #fff3e0;
+  color: #e65100;
+}

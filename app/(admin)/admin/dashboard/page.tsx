@@ -47,10 +47,10 @@ function DashboardContent() {
             <div className="dashboard-card-title">Appointments</div>
             <div className="dashboard-card-sub">View and manage appointments</div>
           </Link>
-          <div className="dashboard-card disabled">
+          <Link href="/admin/invoices" className="dashboard-card">
             <div className="dashboard-card-title">Invoices</div>
-            <div className="dashboard-card-sub">Coming soon</div>
-          </div>
+            <div className="dashboard-card-sub">View and manage invoices</div>
+          </Link>
         </div>
         <div style={{ marginTop: "2rem" }}>
           <div className="record-section">
