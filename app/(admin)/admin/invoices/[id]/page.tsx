@@ -43,6 +43,7 @@ export default function InvoiceDetail() {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [sending, setSending] = useState(false);
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -111,6 +112,26 @@ export default function InvoiceDetail() {
     router.push("/admin/invoices");
   }
 
+  async function handleEmailInvoice() {
+    if (!invoice) return;
+    if (!confirm(`Send invoice #${invoice.invoice_number} to ${invoice.clients.email}?`)) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/email-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await fetchInvoice();
+      alert("Invoice sent successfully!");
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+    setSending(false);
+  }
+
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-US", {
       month: "long", day: "numeric", year: "numeric"
@@ -146,6 +167,13 @@ export default function InvoiceDetail() {
               {({ loading: pdfLoading }) => pdfLoading ? "Generating..." : "Download PDF"}
             </PDFDownloadLink>
           )}
+          <button
+            onClick={handleEmailInvoice}
+            disabled={sending}
+            className="admin-btn"
+          >
+            {sending ? "Sending..." : "Email Invoice"}
+          </button>
           <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
         </div>
       </div>
