@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react"
 import { createClient } from "../../../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +34,7 @@ const SERVICE_RATES: Record<string, number> = {
   "Piano Life Saver Installation": 0,
 };
 
-export default function NewInvoice() {
+function NewInvoiceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const appointmentId = searchParams.get("appointmentId");
@@ -410,5 +410,12 @@ export default function NewInvoice() {
         </form>
       </div>
     </div>
+  );
+}
+export default function NewInvoice() {
+  return (
+    <Suspense fallback={<div className="admin-loading">Loading...</div>}>
+      <NewInvoiceContent />
+    </Suspense>
   );
 }
