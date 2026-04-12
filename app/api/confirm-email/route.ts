@@ -1,3 +1,5 @@
+import { generateICS } from "../../../lib/ics";
+import { getGoogleAccessToken } from "../../../lib/google";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "../../../lib/supabase-server";
 import { sendEmail, confirmationEmailBody } from "../../../lib/gmail";
@@ -34,15 +36,62 @@ export async function POST(request: NextRequest) {
       timeZone: "America/Detroit",
     });
 
-    await sendEmail({
-      to: client.email,
-      subject: "Your Piano Service Appointment Has Been Added To My Calendar",
-      body: confirmationEmailBody({
-        firstName: client.first_name,
-        date: formattedDate,
-        time: formattedTime,
-        serviceType: appt.service_type,
-      }),
+    const apptDate = new Date(appt.appointment_date);
+    const endDate = new Date(apptDate.getTime() + 60 * 60000);
+
+    const icsContent = generateICS({
+      summary: "Piano Service Appointment - David Cossey",
+      description: `Service: ${appt.service_type}`,
+      location: "",
+      startTime: apptDate,
+      endTime: endDate,
+      organizerEmail: "davetunespianos@gmail.com",
+      organizerName: "David Cossey",
+    });
+
+    const accessToken = await getGoogleAccessToken();
+    if (!accessToken) return NextResponse.json({ success: true, skipped: "no token" });
+
+    const boundary = "confirm_boundary_xyz";
+    const icsBase64 = Buffer.from(icsContent).toString("base64");
+    const bodyHtml = confirmationEmailBody({
+      firstName: client.first_name,
+      date: formattedDate,
+      time: formattedTime,
+      serviceType: appt.service_type,
+    });
+
+    const emailLines = [
+      `To: ${client.email}`,
+      `Subject: Your Piano Service Appointment Has Been Added To My Calendar`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/html; charset=utf-8`,
+      ``,
+      bodyHtml,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/calendar; method=REQUEST; name="appointment.ics"`,
+      `Content-Disposition: attachment; filename="appointment.ics"`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      icsBase64,
+      ``,
+      `--${boundary}--`,
+    ];
+
+    const rawEmail = emailLines.join("\r\n");
+    const encodedEmail = Buffer.from(rawEmail).toString("base64url");
+
+    await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ raw: encodedEmail }),
     });
 
     return NextResponse.json({ success: true });

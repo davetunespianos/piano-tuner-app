@@ -34,6 +34,7 @@ type Appointment = {
 
 export default function AppointmentRecord() {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [invoice, setInvoice] = useState<{ id: string; invoice_number: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const params = useParams();
@@ -71,6 +72,14 @@ export default function AppointmentRecord() {
       .single();
 
     if (!error && data) setAppointment(data as unknown as Appointment);
+
+    const { data: invData } = await supabase
+      .from("invoices")
+      .select("id, invoice_number")
+      .eq("appointment_id", id)
+      .single();
+
+    if (invData) setInvoice(invData);
     setLoading(false);
   }
 
@@ -112,6 +121,20 @@ export default function AppointmentRecord() {
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
           <Link href="/admin/appointments" className="admin-back">Back to Appointments</Link>
           <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
+          {appointment.status === "Completed" && (
+            invoice ? (
+              <Link href={`/admin/invoices/${invoice.id}`} className="admin-back">
+                View Invoice #{invoice.invoice_number}
+              </Link>
+            ) : (
+              <Link
+                href={`/admin/invoices/new?appointmentId=${id}`}
+                className="admin-btn"
+              >
+                + Create Invoice
+              </Link>
+            )
+          )}
           <Link href={`/admin/appointments/${id}/edit`} className="admin-btn">Edit Appointment</Link>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../../lib/supabase";
 import { useRouter } from "next/navigation";
@@ -35,6 +36,8 @@ const SERVICE_RATES: Record<string, number> = {
 
 export default function NewInvoice() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const appointmentId = searchParams.get("appointmentId");
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +73,34 @@ export default function NewInvoice() {
       .select("id, first_name, last_name, company_name, address, city, state, zip")
       .order("last_name", { ascending: true });
     if (data) setClients(data);
+
+    if (appointmentId) {
+      const { data: appt } = await supabase
+        .from("appointments")
+        .select("client_id, service_type, appointment_date")
+        .eq("id", appointmentId)
+        .single();
+
+      if (appt) {
+        const today = new Date().toISOString().split("T")[0];
+
+        setForm((prev) => ({
+          ...prev,
+          client_id: appt.client_id,
+          invoice_date: today,
+          due_date: today,
+        }));
+
+        const rate = SERVICE_RATES[appt.service_type] || 0;
+        setLineItems([{
+          description: appt.service_type,
+          quantity: 1,
+          unit_price: rate,
+          line_total: rate,
+        }]);
+      }
+    }
+
     setLoading(false);
   }
 
@@ -162,6 +193,7 @@ export default function NewInvoice() {
         status: form.status,
         notes: form.notes || null,
         payment_method: form.payment_method || null,
+        appointment_id: appointmentId || null,
       }])
       .select("id")
       .single();
