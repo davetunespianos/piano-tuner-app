@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../AdminHeader";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../lib/supabase";
 import { useRouter } from "next/navigation";
@@ -63,13 +64,14 @@ export default function ClientList() {
   if (loading) return <div className="admin-loading">Loading clients...</div>;
   return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>Clients</h1>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <Link href="/admin/dashboard" className="admin-back">Dashboard</Link>
-          <Link href="/admin/clients/new" className="admin-btn">+ Add Client</Link>
-        </div>
-      </div>
+      <AdminHeader
+        title="Clients"
+        actions={
+          <>
+            <Link href="/admin/clients/new" className="admin-btn">+ Add Client</Link>
+          </>
+        }
+      />
       <div className="admin-content">
         <input
           type="text"

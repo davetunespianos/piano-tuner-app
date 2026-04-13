@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../../../AdminHeader";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../../../lib/supabase";
 import { useRouter, useParams } from "next/navigation";
@@ -156,10 +157,7 @@ export default function EditAppointment() {
   if (loading) return <div className="admin-loading">Loading appointment...</div>;
  return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>Edit Appointment</h1>
-        <Link href={`/admin/appointments/${id}`} className="admin-back">Cancel</Link>
-      </div>
+      <AdminHeader title="Edit Appointment" />
       <div className="admin-content">
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-section">

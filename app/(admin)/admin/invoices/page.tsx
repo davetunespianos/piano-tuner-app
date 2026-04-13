@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../AdminHeader";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../lib/supabase";
 import { useRouter } from "next/navigation";
@@ -72,13 +73,14 @@ export default function InvoiceList() {
   if (loading) return <div className="admin-loading">Loading invoices...</div>;
  return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>Invoices</h1>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <Link href="/admin/dashboard" className="admin-back">Dashboard</Link>
-          <Link href="/admin/invoices/new" className="admin-btn">+ New Invoice</Link>
-        </div>
-      </div>
+      <AdminHeader
+        title="Invoices"
+        actions={
+          <>
+            <Link href="/admin/invoices/new" className="admin-btn">+ New Invoice</Link>
+          </>
+        }
+      />
       <div className="admin-content">
         <div className="filter-tabs">
           <button className={filter === "all" ? "filter-tab active" : "filter-tab"} onClick={() => setFilter("all")}>All</button>

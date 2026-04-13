@@ -733,3 +733,137 @@ footer a:hover { text-decoration: underline; }
   background: #fff3e0;
   color: #e65100;
 }
+/* ADMIN MOBILE */
+@media (max-width: 768px) {
+  .admin-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    height: auto;
+  }
+  .admin-header h1 {
+    font-size: 1rem;
+    flex: 1;
+  }
+  .admin-header > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .admin-content {
+    padding: 1rem;
+  }
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .form-row {
+    flex-direction: column;
+  }
+  .record-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .filter-tabs {
+    flex-wrap: wrap;
+  }
+  .admin-form {
+    max-width: 100%;
+  }
+  .invoice-preview {
+    padding: 1rem;
+    font-size: 0.85rem;
+  }
+  .invoice-preview > div:first-child {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .invoice-preview > div:first-child > div:last-child {
+    text-align: left;
+  }
+  .piano-list {
+    gap: 0.75rem;
+  }
+  .record-section {
+    padding: 1rem;
+  }
+  .record-section-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+@media (max-width: 768px) {
+  .piano-card > div {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .admin-table th:nth-child(3),
+  .admin-table td:nth-child(3) {
+    display: none;
+  }
+  .admin-table th:nth-child(4),
+  .admin-table td:nth-child(4) {
+    display: none;
+  }
+}
+/* ADMIN MOBILE HEADER */
+.admin-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.admin-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 0.5rem;
+}
+.admin-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #fff;
+}
+.admin-mobile-menu {
+  background: #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 99;
+}
+.admin-mobile-menu a,
+.admin-mobile-menu button {
+  color: #ccc;
+  text-decoration: none;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid #333;
+  transition: color 0.2s;
+}
+.admin-mobile-menu a:hover,
+.admin-mobile-menu button:hover {
+  color: #fff;
+}
+@media (max-width: 768px) {
+  .admin-hamburger {
+    display: flex;
+  }
+  .admin-header-actions {
+    display: none;
+  }
+}

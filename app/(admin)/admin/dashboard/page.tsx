@@ -4,53 +4,20 @@ import { useEffect, useState, Suspense } from "react";
 import { createClient } from "../../../../lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import AdminHeader from "../AdminHeader";
 
 function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const connected = searchParams.get("connected");
+  const connError = searchParams.get("error");
   const [revenue, setRevenue] = useState({
     paidThisMonth: 0,
     outstanding: 0,
     overdue: 0,
     totalInvoiced: 0,
   });
-
-  async function fetchRevenue() {
-    const supabase = createClient();
-
-    const { data: invoices } = await supabase
-      .from("invoices")
-      .select("status, due_date, invoice_items(line_total)");
-
-    if (!invoices) return;
-
-    const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-
-    let paidThisMonth = 0;
-    let outstanding = 0;
-    let overdue = 0;
-    let totalInvoiced = 0;
-
-    invoices.forEach((inv: any) => {
-      const total = inv.invoice_items.reduce((sum: number, item: any) => sum + item.line_total, 0);
-      totalInvoiced += total;
-
-      if (inv.status === "Paid") {
-        paidThisMonth += total;
-      } else if (inv.status === "Overdue") {
-        overdue += total;
-      } else if (["Open", "Sent"].includes(inv.status)) {
-        outstanding += total;
-      }
-    });
-
-    setRevenue({ paidThisMonth, outstanding, overdue, totalInvoiced });
-  }
-
-  const searchParams = useSearchParams();
-  const connected = searchParams.get("connected");
-  const connError = searchParams.get("error");
 
   useEffect(() => {
     const supabase = createClient();
@@ -64,20 +31,35 @@ function DashboardContent() {
     });
   }, [router]);
 
-  async function handleSignOut() {
+  async function fetchRevenue() {
     const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/admin/login");
+    const { data: invoices } = await supabase
+      .from("invoices")
+      .select("status, due_date, invoice_items(line_total)");
+
+    if (!invoices) return;
+
+    let paidThisMonth = 0;
+    let outstanding = 0;
+    let overdue = 0;
+    let totalInvoiced = 0;
+
+    invoices.forEach((inv: any) => {
+      const total = inv.invoice_items.reduce((sum: number, item: any) => sum + item.line_total, 0);
+      totalInvoiced += total;
+      if (inv.status === "Paid") paidThisMonth += total;
+      else if (inv.status === "Overdue") overdue += total;
+      else if (["Open", "Sent"].includes(inv.status)) outstanding += total;
+    });
+
+    setRevenue({ paidThisMonth, outstanding, overdue, totalInvoiced });
   }
 
   if (loading) return <div className="admin-loading">Loading...</div>;
 
   return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>Admin Dashboard</h1>
-        <button onClick={handleSignOut} className="signout-btn">Sign Out</button>
-      </div>
+      <AdminHeader title="Admin Dashboard" />
       <div className="admin-content">
         <div className="dashboard-grid">
           <Link href="/admin/clients" className="dashboard-card">

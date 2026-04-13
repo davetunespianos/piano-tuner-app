@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../../../../AdminHeader";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../../../../lib/supabase";
 import { useRouter, useParams } from "next/navigation";
@@ -91,10 +92,7 @@ export default function EditPiano() {
   if (loading) return <div className="admin-loading">Loading piano...</div>;
  return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>Edit Piano</h1>
-        <Link href={`/admin/clients/${id}`} className="admin-back">Cancel</Link>
-      </div>
+      <AdminHeader title="Edit Piano" />
       <div className="admin-content">
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-section">

@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../../AdminHeader";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../../lib/supabase";
 import { useRouter, useParams } from "next/navigation";
@@ -116,28 +117,26 @@ export default function AppointmentRecord() {
   if (!appointment) return <div className="admin-loading">Appointment not found.</div>;
  return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>{formatDate(appointment.appointment_date)}</h1>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <Link href="/admin/appointments" className="admin-back">Back to Appointments</Link>
-          <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
-          {appointment.status === "Completed" && (
-            invoice ? (
-              <Link href={`/admin/invoices/${invoice.id}`} className="admin-back">
-                View Invoice #{invoice.invoice_number}
-              </Link>
-            ) : (
-              <Link
-                href={`/admin/invoices/new?appointmentId=${id}`}
-                className="admin-btn"
-              >
-                + Create Invoice
-              </Link>
-            )
-          )}
-          <Link href={`/admin/appointments/${id}/edit`} className="admin-btn">Edit Appointment</Link>
-        </div>
-      </div>
+      <AdminHeader
+        title={formatDate(appointment.appointment_date)}
+        actions={
+          <>
+            {appointment.status === "Completed" && (
+              invoice ? (
+                <Link href={`/admin/invoices/${invoice.id}`} className="admin-back">
+                  View Invoice #{invoice.invoice_number}
+                </Link>
+              ) : (
+                <Link href={`/admin/invoices/new?appointmentId=${id}`} className="admin-btn">
+                  + Create Invoice
+                </Link>
+              )
+            )}
+            <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
+            <Link href={`/admin/appointments/${id}/edit`} className="admin-btn">Edit Appointment</Link>
+          </>
+        }
+      />
       <div className="admin-content">
 
         {/* Summary */}

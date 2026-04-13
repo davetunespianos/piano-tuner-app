@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../../AdminHeader";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react"
 import { createClient } from "../../../../../lib/supabase";
@@ -224,10 +225,7 @@ function NewInvoiceContent() {
   if (loading) return <div className="admin-loading">Loading...</div>;
   return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>New Invoice</h1>
-        <Link href="/admin/invoices" className="admin-back">Back to Invoices</Link>
-      </div>
+      <AdminHeader title="New Invoice" />
       <div className="admin-content">
         <form onSubmit={handleSubmit} className="admin-form" style={{ maxWidth: "800px" }}>
 

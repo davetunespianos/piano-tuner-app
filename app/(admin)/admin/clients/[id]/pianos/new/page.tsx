@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../../../../AdminHeader";
 import { useState } from "react";
 import { createClient } from "../../../../../../../lib/supabase";
 import { useRouter, useParams } from "next/navigation";
@@ -53,10 +54,7 @@ export default function NewPiano() {
   }
  return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>Add Piano</h1>
-        <Link href={`/admin/clients/${id}`} className="admin-back">Back to Client</Link>
-      </div>
+      <AdminHeader title="Add Piano" />
       <div className="admin-content">
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-section">

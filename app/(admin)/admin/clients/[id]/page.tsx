@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../../AdminHeader";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../../../lib/supabase";
 import { useRouter, useParams } from "next/navigation";
@@ -117,14 +118,15 @@ export default function ClientRecord() {
   if (!client) return <div className="admin-loading">Client not found.</div>;
  return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>{displayName(client)}</h1>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <Link href="/admin/clients" className="admin-back">Back to Clients</Link>
-          <button onClick={handleDelete} className="admin-btn-danger">Delete Client</button>
-          <Link href={`/admin/clients/${id}/edit`} className="admin-btn">Edit Client</Link>
-        </div>
-      </div>
+      <AdminHeader
+        title={displayName(client)}
+        actions={
+          <>
+            <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
+            <Link href={`/admin/clients/${id}/edit`} className="admin-btn">Edit Client</Link>
+          </>
+        }
+      />
       <div className="admin-content">
         <div className="record-section">
           <div className="record-section-header">

@@ -1,5 +1,6 @@
 "use client";
 
+import AdminHeader from "../../AdminHeader";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import InvoicePDF from "./InvoicePDF";
 import { useEffect, useState } from "react";
@@ -154,29 +155,32 @@ export default function InvoiceDetail() {
   if (!invoice) return <div className="admin-loading">Invoice not found.</div>;
  return (
     <div className="admin-wrapper">
-      <div className="admin-header">
-        <h1>INV-{invoice.invoice_number}</h1>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <Link href="/admin/invoices" className="admin-back">Back to Invoices</Link>
-          {!loading && invoice && lineItems.length > 0 && (
-            <PDFDownloadLink
-              document={<InvoicePDF invoice={invoice} lineItems={lineItems} />}
-              fileName={`invoice-${invoice.invoice_number}.pdf`}
-              className="admin-btn"
-            >
-              {({ loading: pdfLoading }) => pdfLoading ? "Generating..." : "Download PDF"}
-            </PDFDownloadLink>
-          )}
-          <button
-            onClick={handleEmailInvoice}
-            disabled={sending}
-            className="admin-btn"
-          >
-            {sending ? "Sending..." : "Email Invoice"}
-          </button>
-          <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
-        </div>
-      </div>
+      <AdminHeader
+        title={`INV-${invoice.invoice_number}`}
+        actions={
+          <>
+            {invoice && (
+              <PDFDownloadLink
+                document={<InvoicePDF invoice={invoice} lineItems={lineItems} />}
+                fileName={`invoice-${invoice.invoice_number}.pdf`}
+                className="admin-btn"
+              >
+                {({ loading: pdfLoading }) => pdfLoading ? "Generating..." : "Download PDF"}
+              </PDFDownloadLink>
+            )}
+            {invoice && (
+              <button
+                onClick={handleEmailInvoice}
+                disabled={sending}
+                className="admin-btn"
+              >
+                {sending ? "Sending..." : "Email Invoice"}
+              </button>
+            )}
+            <button onClick={handleDelete} className="admin-btn-danger">Delete</button>
+          </>
+        }
+      />
       <div className="admin-content">
 
         {/* Status bar */}
