@@ -46,7 +46,7 @@ function NewInvoiceContent() {
   const [form, setForm] = useState({
     client_id: "",
     invoice_date: new Date().toISOString().split("T")[0],
-    due_date: "",
+    due_date: new Date().toISOString().split("T")[0],
     status: "Draft",
     notes: "",
     payment_method: "",

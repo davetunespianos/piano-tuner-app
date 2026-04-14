@@ -867,3 +867,23 @@ footer a:hover { text-decoration: underline; }
     display: none;
   }
 }
+@media (max-width: 768px) {
+  .admin-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .admin-header h1 {
+    width: 100%;
+  }
+  .admin-header-actions {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .admin-hamburger {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+  }
+}
