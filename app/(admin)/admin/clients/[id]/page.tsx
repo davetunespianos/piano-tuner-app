@@ -217,51 +217,53 @@ export default function ClientRecord() {
                     >
                       Edit
                     </Link>
-                    <div className="record-section">
-                      <div className="record-section-header">
-                        <h2>Appointments</h2>
-                        <Link href="/admin/appointments/new" className="admin-btn">+ New Appointment</Link>
-                      </div>
-                      {appointments.length === 0 ? (
-                        <p style={{ color: "#888" }}>No appointments on record yet.</p>
-                      ) : (
-                        <table className="admin-table">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Time</th>
-                              <th>Service</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {appointments.map((a) => (
-                              <tr
-                                key={a.id}
-                                onClick={() => router.push(`/admin/appointments/${a.id}`)}
-                                className="admin-table-row"
-                              >
-                                <td>{formatDate(a.appointment_date)}</td>
-                                <td>{formatTime(a.appointment_date)}</td>
-                                <td>{a.service_type}</td>
-                                <td>
-                                  <span className={`status-badge status-${a.status.toLowerCase()}`}>
-                                    {a.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
                   </div>
                 </div>
-                ))}
+              ))}
             </div>
+          )}
+        </div>
+
+        {/* Appointments */}
+        <div className="record-section">
+          <div className="record-section-header">
+            <h2>Appointments</h2>
+            <Link href="/admin/appointments/new" className="admin-btn">+ New Appointment</Link>
+          </div>
+          {appointments.length === 0 ? (
+            <p style={{ color: "#888" }}>No appointments on record yet.</p>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Service</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {appointments.map((a) => (
+                  <tr
+                    key={a.id}
+                    onClick={() => router.push(`/admin/appointments/${a.id}`)}
+                    className="admin-table-row"
+                  >
+                    <td>{formatDate(a.appointment_date)}</td>
+                    <td>{formatTime(a.appointment_date)}</td>
+                    <td>{a.service_type}</td>
+                    <td>
+                      <span className={`status-badge status-${a.status.toLowerCase()}`}>
+                        {a.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
     </div>
   );
-} 
+}
