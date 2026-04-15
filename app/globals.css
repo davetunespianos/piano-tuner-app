@@ -859,10 +859,11 @@ footer a:hover { text-decoration: underline; }
 .admin-mobile-menu button:hover {
   color: #fff;
 }
+.admin-hamburger {
+  display: flex !important;
+}
+
 @media (max-width: 768px) {
-  .admin-hamburger {
-    display: flex;
-  }
   .admin-header-actions {
     display: none;
   }
