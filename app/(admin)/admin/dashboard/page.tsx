@@ -74,6 +74,10 @@ function DashboardContent() {
             <div className="dashboard-card-title">Invoices</div>
             <div className="dashboard-card-sub">View and manage invoices</div>
           </Link>
+          <Link href="/admin/import" className="dashboard-card">
+            <div className="dashboard-card-title">Import Data</div>
+            <div className="dashboard-card-sub">Import clients and pianos from Gazelle</div>
+          </Link>
         </div>
         <div style={{ marginTop: "2rem" }}>
           <div className="record-section">
