@@ -9,7 +9,6 @@ import Link from "next/link";
 type Appointment = {
   id: string;
   appointment_date: string;
-  service_type: string;
   status: string;
   duration_minutes: number | null;
   notes: string | null;
@@ -24,13 +23,17 @@ type Appointment = {
     phone: string | null;
     email: string | null;
   };
-  pianos: {
+ appointment_pianos: {
     id: string;
-    make: string | null;
-    model: string | null;
-    type: string | null;
-    serial_number: string | null;
-  } | null;
+    service_type: string;
+    pianos: {
+      id: string;
+      make: string | null;
+      model: string | null;
+      type: string | null;
+      serial_number: string | null;
+    } | null;
+  }[];
 };
 
 export default function AppointmentRecord() {
@@ -59,7 +62,6 @@ export default function AppointmentRecord() {
       .select(`
         id,
         appointment_date,
-        service_type,
         status,
         duration_minutes,
         notes,
@@ -67,7 +69,7 @@ export default function AppointmentRecord() {
         humidity_percent,
         google_event_id,
         clients (id, first_name, last_name, company_name, phone, email),
-        pianos (id, make, model, type, serial_number)
+        appointment_pianos (id, service_type, pianos (id, make, model, type, serial_number))
       `)
       .eq("id", id)
       .single();
@@ -156,10 +158,6 @@ export default function AppointmentRecord() {
               <span className="record-label">Time</span>
               <span className="record-value">{formatTime(appointment.appointment_date)}</span>
             </div>
-            <div className="record-field">
-              <span className="record-label">Service</span>
-              <span className="record-value">{appointment.service_type}</span>
-            </div>
             {appointment.duration_minutes && (
               <div className="record-field">
                 <span className="record-label">Duration</span>
@@ -211,32 +209,28 @@ export default function AppointmentRecord() {
           </div>
         </div>
 
-        {/* Piano */}
-        {appointment.pianos && (
+        {/* Pianos & Services */}
+        {appointment.appointment_pianos && appointment.appointment_pianos.length > 0 && (
           <div className="record-section">
             <div className="record-section-header">
-              <h2>Piano</h2>
+              <h2>Pianos & Services</h2>
             </div>
-            <div className="record-grid">
-              <div className="record-field">
-                <span className="record-label">Make & Model</span>
-                <span className="record-value">
-                  {[appointment.pianos.make, appointment.pianos.model].filter(Boolean).join(" ") || "—"}
-                </span>
+            {appointment.appointment_pianos.map((ap) => (
+              <div key={ap.id} className="piano-card" style={{ marginBottom: "1rem" }}>
+                <div className="piano-name">
+                  {ap.pianos
+                    ? [ap.pianos.make, ap.pianos.model].filter(Boolean).join(" ") || ap.pianos.type || "Unnamed Piano"
+                    : "No piano specified"}
+                </div>
+                {ap.pianos?.type && <div className="piano-desc">{ap.pianos.type}</div>}
+                {ap.pianos?.serial_number && (
+                  <div className="piano-desc">Serial: {ap.pianos.serial_number}</div>
+                )}
+                <div className="piano-detail" style={{ fontWeight: 600, color: "#1a1a1a", marginTop: "0.25rem" }}>
+                  Service: {ap.service_type}
+                </div>
               </div>
-              {appointment.pianos.type && (
-                <div className="record-field">
-                  <span className="record-label">Type</span>
-                  <span className="record-value">{appointment.pianos.type}</span>
-                </div>
-              )}
-              {appointment.pianos.serial_number && (
-                <div className="record-field">
-                  <span className="record-label">Serial Number</span>
-                  <span className="record-value">{appointment.pianos.serial_number}</span>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
         )}
 

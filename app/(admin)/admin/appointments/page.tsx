@@ -9,7 +9,6 @@ import Link from "next/link";
 type Appointment = {
   id: string;
   appointment_date: string;
-  service_type: string;
   status: string;
   notes: string | null;
   clients: {
@@ -17,11 +16,13 @@ type Appointment = {
     last_name: string | null;
     company_name: string | null;
   };
-  pianos: {
-    make: string | null;
-    model: string | null;
-    description: string | null;
-  } | null;
+  appointment_pianos: {
+    service_type: string;
+    pianos: {
+      make: string | null;
+      model: string | null;
+    } | null;
+  }[];
 };
 
 export default function AppointmentList() {
@@ -48,11 +49,10 @@ export default function AppointmentList() {
       .select(`
         id,
         appointment_date,
-        service_type,
         status,
         notes,
         clients (first_name, last_name, company_name),
-        pianos (make, model, type)
+        appointment_pianos (service_type, pianos (make, model))
       `)
       .order("appointment_date", { ascending: true });
 
@@ -68,9 +68,9 @@ export default function AppointmentList() {
     return [a.clients.first_name, a.clients.last_name].filter(Boolean).join(" ");
   }
 
-  function pianoName(a: Appointment) {
-    if (!a.pianos) return "—";
-    return [a.pianos.make, a.pianos.model].filter(Boolean).join(" ") || a.pianos.description || "—";
+  function serviceTypes(a: Appointment) {
+    if (!a.appointment_pianos || a.appointment_pianos.length === 0) return "—";
+    return a.appointment_pianos.map((ap) => ap.service_type).join(", ");
   }
 
   function formatDate(dateStr: string) {
@@ -135,8 +135,7 @@ export default function AppointmentList() {
                 <th>Date</th>
                 <th>Time</th>
                 <th>Client</th>
-                <th>Piano</th>
-                <th>Service</th>
+                <th>Services</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -150,8 +149,7 @@ export default function AppointmentList() {
                   <td>{formatDate(a.appointment_date)}</td>
                   <td>{formatTime(a.appointment_date)}</td>
                   <td>{clientName(a)}</td>
-                  <td>{pianoName(a)}</td>
-                  <td>{a.service_type}</td>
+                  <td>{serviceTypes(a)}</td>
                   <td>
                     <span className={`status-badge status-${a.status.toLowerCase()}`}>
                       {a.status}

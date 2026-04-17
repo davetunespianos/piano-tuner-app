@@ -78,7 +78,14 @@ function NewInvoiceContent() {
     if (appointmentId) {
       const { data: appt } = await supabase
         .from("appointments")
-        .select("client_id, service_type, appointment_date")
+        .select(`
+          client_id,
+          appointment_date,
+          appointment_pianos (
+            service_type,
+            pianos (make, model, type)
+          )
+        `)
         .eq("id", appointmentId)
         .single();
 
@@ -92,13 +99,24 @@ function NewInvoiceContent() {
           due_date: today,
         }));
 
-        const rate = SERVICE_RATES[appt.service_type] || 0;
-        setLineItems([{
-          description: appt.service_type,
-          quantity: 1,
-          unit_price: rate,
-          line_total: rate,
-        }]);
+        if (appt.appointment_pianos && appt.appointment_pianos.length > 0) {
+          const items = (appt.appointment_pianos as any[]).map((ap) => {
+            const rate = SERVICE_RATES[ap.service_type] || 0;
+            const pianoName = ap.pianos
+              ? [ap.pianos.make, ap.pianos.model].filter(Boolean).join(" ") || ap.pianos.type || ""
+              : "";
+            const description = pianoName
+              ? `${ap.service_type} - ${pianoName}`
+              : ap.service_type;
+            return {
+              description,
+              quantity: 1,
+              unit_price: rate,
+              line_total: rate,
+            };
+          });
+          setLineItems(items);
+        }
       }
     }
 
