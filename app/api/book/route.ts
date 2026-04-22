@@ -115,14 +115,14 @@ export async function POST(request: NextRequest) {
     }
 
     const appointmentDate = easternWallTimeToDate(date, time);
-    const endTime = new Date(appointmentDate.getTime() + 60 * 60000);
+    const endTime = new Date(appointmentDate.getTime() + 120 * 60000);
 
     const { data: newAppt, error: apptError } = await supabase
       .from("appointments")
       .insert([{
         client_id: clientId,
         appointment_date: appointmentDate.toISOString(),
-        duration_minutes: 60,
+        duration_minutes: 120,
         status: "Scheduled",
         notes: notes || null,
       }])
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const apptDate = easternWallTimeToDate(date, time);
-      const endDate = new Date(apptDate.getTime() + 60 * 60000);
+      const endDate = new Date(apptDate.getTime() + 120 * 60000);
 
       const formattedDate = apptDate.toLocaleDateString("en-US", {
         weekday: "long", month: "long", day: "numeric", year: "numeric",
