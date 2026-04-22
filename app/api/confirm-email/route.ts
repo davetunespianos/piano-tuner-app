@@ -9,20 +9,31 @@ export async function POST(request: NextRequest) {
     const { appointmentId } = await request.json();
     const supabase = await createServerSupabaseClient();
 
-    const { data: appt } = await supabase
+    const { data: appt, error: apptError } = await supabase
       .from("appointments")
       .select(`
         appointment_date,
-        service_type,
-        clients (first_name, email)
+        clients (first_name, email),
+        appointment_pianos (service_type)
       `)
       .eq("id", appointmentId)
       .single();
+
+    if (apptError) {
+      console.error("Supabase confirm-email query error:", apptError);
+      return NextResponse.json({ error: "Supabase query failed", details: apptError }, { status: 500 });
+    }
 
     if (!appt) return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
 
     const client = appt.clients as any;
     if (!client?.email) return NextResponse.json({ success: true, skipped: "no email" });
+
+    const appointmentPianos = (appt.appointment_pianos as any[]) || [];
+    const serviceTypes = appointmentPianos.map((ap) => ap.service_type).filter(Boolean);
+    const serviceTypeLabel = serviceTypes.length > 0
+      ? Array.from(new Set(serviceTypes)).join(", ")
+      : "Piano Service";
 
     const formattedDate = new Date(appt.appointment_date).toLocaleDateString("en-US", {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
@@ -41,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const icsContent = generateICS({
       summary: "Piano Service Appointment - David Cossey",
-      description: `Service: ${appt.service_type}`,
+      description: `Service: ${serviceTypeLabel}`,
       location: "",
       startTime: apptDate,
       endTime: endDate,
@@ -58,7 +69,7 @@ export async function POST(request: NextRequest) {
       firstName: client.first_name,
       date: formattedDate,
       time: formattedTime,
-      serviceType: appt.service_type,
+      serviceType: serviceTypeLabel,
     });
 
     const emailLines = [
