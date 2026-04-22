@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "../../../lib/supabase-server";
 import { sendEmail, reminderEmailBody } from "../../../lib/gmail";
 
+// NOTE: No idempotency check on reminders. Cron fires every 3hr at 9/12/3/6/9pm ET,
+// and reminder window is 46.5-49.5hr. For the standard Saturday 9am/12pm/3pm slots,
+// each appointment catches exactly one cron firing cleanly. If cron schedule or
+// booking pattern changes significantly, add a reminder_sent_at column and filter on it.
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
