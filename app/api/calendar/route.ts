@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    const { data: appt } = await supabase
+    const { data: appt, error: apptError } = await supabase
       .from("appointments")
       .select(`
         id,
@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
       `)
       .eq("id", appointmentId)
       .single();
+
+    if (apptError) {
+      console.error("Supabase appointments query error:", apptError);
+      return NextResponse.json({ error: "Supabase query failed", details: apptError }, { status: 500 });
+    }
 
     if (!appt) return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
 
