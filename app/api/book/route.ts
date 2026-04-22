@@ -5,6 +5,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "../../../lib/supabase-server";
 import { createCalendarEvent } from "../../../lib/calendar";
 
+// Construct a Date representing the given wall-clock time in Eastern Time (America/Detroit).
+// Handles DST automatically by computing the offset for that specific date.
+function easternWallTimeToDate(dateStr: string, timeStr: string): Date {
+  // dateStr: "YYYY-MM-DD", timeStr: "HH:MM"
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const [hour, minute] = timeStr.split(":").map(Number);
+
+  // Create a UTC date as a starting point, then correct for Eastern offset
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute));
+
+  // Find what hour that UTC instant shows as in Detroit
+  const detroitParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Detroit",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(utcGuess);
+
+  const detroitHour = Number(detroitParts.find((p) => p.type === "hour")?.value);
+  // Offset between UTC hour and Detroit hour gives us the timezone offset for that date
+  const offsetHours = hour - detroitHour;
+
+  return new Date(utcGuess.getTime() + offsetHours * 60 * 60 * 1000);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -86,7 +114,7 @@ export async function POST(request: NextRequest) {
       if (newPiano) pianoId = newPiano.id;
     }
 
-    const appointmentDate = new Date(`${date}T${time}:00`);
+    const appointmentDate = easternWallTimeToDate(date, time);
     const endTime = new Date(appointmentDate.getTime() + 60 * 60000);
 
     const { data: newAppt, error: apptError } = await supabase
@@ -144,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const apptDate = new Date(`${date}T${time}:00`);
+      const apptDate = easternWallTimeToDate(date, time);
       const endDate = new Date(apptDate.getTime() + 60 * 60000);
 
       const formattedDate = apptDate.toLocaleDateString("en-US", {
