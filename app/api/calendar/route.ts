@@ -30,11 +30,13 @@ export async function POST(request: NextRequest) {
         id,
         appointment_date,
         duration_minutes,
-        service_type,
         notes,
         google_event_id,
         clients (first_name, last_name, company_name, address, city, state, zip),
-        pianos (make, model)
+        appointment_pianos (
+          service_type,
+          pianos (make, model)
+        )
       `)
       .eq("id", appointmentId)
       .single();
@@ -51,17 +53,21 @@ export async function POST(request: NextRequest) {
     const endTime = new Date(new Date(startTime).getTime() + duration * 60000).toISOString();
 
     const client = appt.clients as any;
-    const piano = appt.pianos as any;
+    const appointmentPianos = (appt.appointment_pianos as any[]) || [];
     const clientName = client.company_name || `${client.first_name} ${client.last_name || ""}`.trim();
-    const pianoName = piano ? `${piano.make || ""} ${piano.model || ""}`.trim() : "";
     const location = [client.address, client.city, client.state, client.zip].filter(Boolean).join(", ");
+
+    const pianoLines = appointmentPianos.map((ap) => {
+      const p = ap.pianos;
+      const pianoName = p ? `${p.make || ""} ${p.model || ""}`.trim() : "";
+      return pianoName ? `${ap.service_type} — ${pianoName}` : ap.service_type;
+    });
 
     const summary = `Piano Tuning — ${clientName}`;
     const description = [
-      `Service: ${appt.service_type}`,
-      pianoName ? `Piano: ${pianoName}` : "",
+      pianoLines.length > 0 ? `Services:\n${pianoLines.map((l) => `  • ${l}`).join("\n")}` : "",
       appt.notes ? `Notes: ${appt.notes}` : "",
-    ].filter(Boolean).join("\n");
+    ].filter(Boolean).join("\n\n");
 
     if (appt.google_event_id) {
       await updateCalendarEvent({
