@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       .from("appointments")
       .select(`
         appointment_date,
+        duration_minutes,
         clients (first_name, email),
         appointment_pianos (service_type)
       `)
@@ -48,7 +49,8 @@ export async function POST(request: NextRequest) {
     });
 
     const apptDate = new Date(appt.appointment_date);
-    const endDate = new Date(apptDate.getTime() + 60 * 60000);
+    const duration = appt.duration_minutes || 60;
+    const endDate = new Date(apptDate.getTime() + duration * 60000);
 
     const icsContent = generateICS({
       summary: "Piano Service Appointment - David Cossey",
