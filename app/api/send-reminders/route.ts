@@ -15,17 +15,22 @@ export async function GET(request: NextRequest) {
     const in46Hours30Min = new Date(now.getTime() + ((48 * 60) - 90) * 60 * 1000);
     const in49Hours30Min = new Date(now.getTime() + ((48 * 60) + 90) * 60 * 1000);
 
-    const { data: appointments } = await supabase
+    const { data: appointments, error: apptError } = await supabase
       .from("appointments")
       .select(`
         id,
         appointment_date,
-        service_type,
-        clients (first_name, email)
+        clients (first_name, email),
+        appointment_pianos (service_type)
       `)
       .eq("status", "Scheduled")
       .gte("appointment_date", in46Hours30Min.toISOString())
       .lte("appointment_date", in49Hours30Min.toISOString());
+
+    if (apptError) {
+      console.error("Supabase send-reminders query error:", apptError);
+      return NextResponse.json({ error: "Supabase query failed", details: apptError }, { status: 500 });
+    }
 
     if (!appointments || appointments.length === 0) {
       return NextResponse.json({ success: true, sent: 0 });
@@ -36,6 +41,12 @@ export async function GET(request: NextRequest) {
       const client = appt.clients as any;
       if (!client?.email) continue;
 
+      const appointmentPianos = (appt.appointment_pianos as any[]) || [];
+      const serviceTypes = appointmentPianos.map((ap) => ap.service_type).filter(Boolean);
+      const serviceTypeLabel = serviceTypes.length > 0
+        ? Array.from(new Set(serviceTypes)).join(", ")
+        : "Piano Service";
+
       const formattedDate = new Date(appt.appointment_date).toLocaleDateString("en-US", {
         weekday: "long", month: "long", day: "numeric", year: "numeric",
         timeZone: "America/Detroit",
@@ -43,9 +54,9 @@ export async function GET(request: NextRequest) {
 
       const d = new Date(appt.appointment_date);
       const formattedTime = d.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "America/Detroit",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/Detroit",
       });
 
       await sendEmail({
@@ -55,7 +66,7 @@ export async function GET(request: NextRequest) {
           firstName: client.first_name,
           date: formattedDate,
           time: formattedTime,
-          serviceType: appt.service_type,
+          serviceType: serviceTypeLabel,
         }),
       });
 
