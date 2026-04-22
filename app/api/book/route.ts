@@ -53,7 +53,10 @@ export async function POST(request: NextRequest) {
         .select("id")
         .single();
 
-      if (clientError || !newClient) throw new Error("Failed to create client record");
+      if (clientError || !newClient) {
+        console.error("Failed to create client:", clientError);
+        throw new Error("Failed to create client record");
+      }
       clientId = newClient.id;
     }
 
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
     if (existingPianos && existingPianos.length > 0) {
       pianoId = existingPianos[0].id;
     } else if (piano_make || piano_model || piano_type) {
-      const { data: newPiano } = await supabase
+      const { data: newPiano, error: pianoError } = await supabase
         .from("pianos")
         .insert([{
           client_id: clientId,
@@ -79,6 +82,7 @@ export async function POST(request: NextRequest) {
         .select("id")
         .single();
 
+      if (pianoError) console.error("Failed to create piano:", pianoError);
       if (newPiano) pianoId = newPiano.id;
     }
 
@@ -89,8 +93,6 @@ export async function POST(request: NextRequest) {
       .from("appointments")
       .insert([{
         client_id: clientId,
-        piano_id: pianoId,
-        service_type,
         appointment_date: appointmentDate.toISOString(),
         duration_minutes: 60,
         status: "Scheduled",
@@ -99,7 +101,22 @@ export async function POST(request: NextRequest) {
       .select("id")
       .single();
 
-    if (apptError || !newAppt) throw new Error("Failed to create appointment");
+    if (apptError || !newAppt) {
+      console.error("Failed to create appointment:", apptError);
+      throw new Error("Failed to create appointment");
+    }
+
+    if (pianoId) {
+      const { error: apPianoError } = await supabase
+        .from("appointment_pianos")
+        .insert([{
+          appointment_id: newAppt.id,
+          piano_id: pianoId,
+          service_type,
+        }]);
+
+      if (apPianoError) console.error("Failed to link piano to appointment:", apPianoError);
+    }
 
     const location = [address, city, state, zip].filter(Boolean).join(", ");
     const summary = `Piano Tuning — ${first_name} ${last_name}`;
@@ -201,4 +218,4 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}  
+}
