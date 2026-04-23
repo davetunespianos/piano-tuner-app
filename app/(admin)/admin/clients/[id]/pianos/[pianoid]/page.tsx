@@ -21,6 +21,7 @@ export default function EditPiano() {
     type: "",
     notes: "",
     has_life_saver: false,
+    is_active: true,
   });
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function EditPiano() {
         type: data.type || "",
         notes: data.notes || "",
         has_life_saver: data.has_life_saver || false,
+        is_active: data.is_active ?? true,
       });
     }
     setLoading(false);
@@ -78,6 +80,7 @@ export default function EditPiano() {
         type: form.type || null,
         notes: form.notes || null,
         has_life_saver: form.has_life_saver,
+        is_active: form.is_active,
       })
       .eq("id", pianoid);
 
@@ -129,7 +132,7 @@ export default function EditPiano() {
               <div className="form-field">
                 <label>Type</label>
                 <input
-                  name="description"
+                  name="type"
                   value={form.type}
                   onChange={handleChange}
                   placeholder="e.g. Grand, Upright, Baby Grand"
@@ -146,6 +149,18 @@ export default function EditPiano() {
                   style={{ width: "16px", height: "16px" }}
                 />
                 Piano Life Saver System installed
+              </label>
+            </div>
+            <div className="form-field" style={{ marginTop: "0.5rem" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={!form.is_active}
+                  onChange={(e) => setForm({ ...form, is_active: !e.target.checked })}
+                  style={{ width: "16px", height: "16px" }}
+                />
+                Mark this piano as Inactive (decommissioned, sold, etc.)
               </label>
             </div>
           </div>

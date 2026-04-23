@@ -29,6 +29,7 @@ type Piano = {
   type: string | null;
   notes: string | null;
   has_life_saver: boolean;
+  is_active: boolean;
 };
 
 type Appointment = {
@@ -196,8 +197,22 @@ export default function ClientRecord() {
                 <div key={p.id} className="piano-card">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
-                      <div className="piano-name">
-                        {[p.make, p.model].filter(Boolean).join(" ") || "Unnamed Piano"}
+                      <div className="piano-name" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span>{[p.make, p.model].filter(Boolean).join(" ") || "Unnamed Piano"}</span>
+                        {!p.is_active && (
+                          <span style={{
+                            fontSize: "0.7rem",
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: "10px",
+                            backgroundColor: "#e0e0e0",
+                            color: "#555",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}>
+                            Inactive
+                          </span>
+                        )}
                       </div>
                       {p.type && <div className="piano-desc">{p.type}</div>}
                       {p.serial_number && (
