@@ -68,10 +68,11 @@ export default function ClientRecord() {
       .single();
 
     const { data: pianoData } = await supabase
-      .from("pianos")
-      .select("*")
-      .eq("client_id", id)
-      .order("created_at", { ascending: true });
+    .from("pianos")
+    .select("*")
+    .eq("client_id", id)
+    .order("is_active", { ascending: false })
+    .order("created_at", { ascending: true });
 
     const { data: apptData } = await supabase
       .from("appointments")
