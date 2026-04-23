@@ -35,8 +35,8 @@ type Piano = {
 type Appointment = {
   id: string;
   appointment_date: string;
-  service_type: string;
   status: string;
+  appointment_pianos: { service_type: string }[];
 };
 
 export default function ClientRecord() {
@@ -76,16 +76,19 @@ export default function ClientRecord() {
 
     const { data: apptData } = await supabase
       .from("appointments")
-      .select("id, appointment_date, service_type, status")
+      .select(`
+        id,
+        appointment_date,
+        status,
+        appointment_pianos (service_type)
+      `)
       .eq("client_id", id)
       .order("appointment_date", { ascending: true });
 
-      if (clientData) setClient(clientData);
-      if (pianoData) setPianos(pianoData);
-      if (apptData) setAppointments(apptData);
-      setLoading(false);if (clientData) setClient(clientData);
-      if (pianoData) setPianos(pianoData);
-      setLoading(false);
+    if (clientData) setClient(clientData);
+    if (pianoData) setPianos(pianoData);
+    if (apptData) setAppointments(apptData as any);
+    setLoading(false);
   }
 
   function displayName(c: Client) {
@@ -267,7 +270,7 @@ export default function ClientRecord() {
                   >
                     <td>{formatDate(a.appointment_date)}</td>
                     <td>{formatTime(a.appointment_date)}</td>
-                    <td>{a.service_type}</td>
+                    <td>{a.appointment_pianos?.length ?? 0} {a.appointment_pianos?.length === 1 ? "service" : "services"}</td>
                     <td>
                       <span className={`status-badge status-${a.status.toLowerCase()}`}>
                         {a.status}
