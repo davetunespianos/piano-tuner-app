@@ -18,11 +18,25 @@ type Client = {
   zip: string | null;
 };
 
+type Piano = {
+  id: string;
+  make: string | null;
+  model: string | null;
+  type: string | null;
+};
+
 type LineItem = {
   description: string;
   quantity: number;
   unit_price: number;
   line_total: number;
+};
+
+// A "piano group" represents one piano on the invoice and its line items
+type PianoGroup = {
+  piano_id: string;
+  piano_label: string;
+  line_items: LineItem[];
 };
 
 const SERVICE_RATES: Record<string, number> = {
@@ -35,11 +49,20 @@ const SERVICE_RATES: Record<string, number> = {
   "Piano Life Saver Installation": 0,
 };
 
+function pianoLabel(p: Piano): string {
+  return [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
+}
+
+function emptyLineItem(): LineItem {
+  return { description: "", quantity: 1, unit_price: 0, line_total: 0 };
+}
+
 function NewInvoiceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const appointmentId = searchParams.get("appointmentId");
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientPianos, setClientPianos] = useState<Piano[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -51,9 +74,7 @@ function NewInvoiceContent() {
     notes: "",
     payment_method: "",
   });
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    { description: "", quantity: 1, unit_price: 0, line_total: 0 }
-  ]);
+  const [pianoGroups, setPianoGroups] = useState<PianoGroup[]>([]);
   const [isNet30, setIsNet30] = useState(false);
 
   useEffect(() => {
@@ -66,6 +87,21 @@ function NewInvoiceContent() {
       }
     });
   }, [router]);
+
+  // When client changes (without an appointment), refresh the available pianos
+  useEffect(() => {
+    if (!form.client_id || appointmentId) return;
+    const supabase = createClient();
+    supabase
+      .from("pianos")
+      .select("id, make, model, type")
+      .eq("client_id", form.client_id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (data) setClientPianos(data);
+      });
+  }, [form.client_id, appointmentId]);
 
   async function fetchClients() {
     const supabase = createClient();
@@ -83,7 +119,7 @@ function NewInvoiceContent() {
           appointment_date,
           appointment_pianos (
             service_type,
-            pianos (make, model, type)
+            pianos (id, make, model, type)
           )
         `)
         .eq("id", appointmentId)
@@ -91,7 +127,6 @@ function NewInvoiceContent() {
 
       if (appt) {
         const today = new Date().toISOString().split("T")[0];
-
         setForm((prev) => ({
           ...prev,
           client_id: appt.client_id,
@@ -99,24 +134,41 @@ function NewInvoiceContent() {
           due_date: today,
         }));
 
-        if (appt.appointment_pianos && appt.appointment_pianos.length > 0) {
-          const items = (appt.appointment_pianos as any[]).map((ap) => {
-            const rate = SERVICE_RATES[ap.service_type] || 0;
-            const pianoName = ap.pianos
-              ? [ap.pianos.make, ap.pianos.model].filter(Boolean).join(" ") || ap.pianos.type || ""
-              : "";
-            const description = pianoName
-              ? `${ap.service_type} - ${pianoName}`
-              : ap.service_type;
-            return {
-              description,
-              quantity: 1,
-              unit_price: rate,
-              line_total: rate,
-            };
-          });
-          setLineItems(items);
+        const apPianos = (appt.appointment_pianos as any[]) || [];
+
+        // Group by piano_id — one piano can have multiple services on the same appointment
+        const groupsByPiano = new Map<string, PianoGroup>();
+        for (const ap of apPianos) {
+          if (!ap.pianos) continue;
+          const piano = ap.pianos;
+          const rate = SERVICE_RATES[ap.service_type] ?? 0;
+          const item: LineItem = {
+            description: ap.service_type,
+            quantity: 1,
+            unit_price: rate,
+            line_total: rate,
+          };
+          if (groupsByPiano.has(piano.id)) {
+            groupsByPiano.get(piano.id)!.line_items.push(item);
+          } else {
+            groupsByPiano.set(piano.id, {
+              piano_id: piano.id,
+              piano_label: pianoLabel(piano),
+              line_items: [item],
+            });
+          }
         }
+
+        setPianoGroups(Array.from(groupsByPiano.values()));
+
+        // Also load the client's full piano list so the user can add another piano if needed
+        const { data: pianosData } = await supabase
+          .from("pianos")
+          .select("id, make, model, type")
+          .eq("client_id", appt.client_id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: true });
+        if (pianosData) setClientPianos(pianosData);
       }
     }
 
@@ -149,47 +201,86 @@ function NewInvoiceContent() {
     setForm({ ...form, invoice_date: date, due_date: dueDate });
   }
 
-  function handleLineItemChange(index: number, field: keyof LineItem, value: string) {
-    const updated = [...lineItems];
-    const item = { ...updated[index] };
+  function addPianoGroup(pianoId: string) {
+    const piano = clientPianos.find((p) => p.id === pianoId);
+    if (!piano) return;
+    if (pianoGroups.some((g) => g.piano_id === pianoId)) return; // already added
+    setPianoGroups([
+      ...pianoGroups,
+      { piano_id: piano.id, piano_label: pianoLabel(piano), line_items: [emptyLineItem()] },
+    ]);
+  }
 
-    if (field === "description") {
-      item.description = value;
-      if (SERVICE_RATES[value] !== undefined) {
-        item.unit_price = SERVICE_RATES[value];
+  function removePianoGroup(pianoId: string) {
+    setPianoGroups(pianoGroups.filter((g) => g.piano_id !== pianoId));
+  }
+
+  function addLineItem(pianoId: string) {
+    setPianoGroups(pianoGroups.map((g) =>
+      g.piano_id === pianoId
+        ? { ...g, line_items: [...g.line_items, emptyLineItem()] }
+        : g
+    ));
+  }
+
+  function removeLineItem(pianoId: string, index: number) {
+    setPianoGroups(pianoGroups.map((g) =>
+      g.piano_id === pianoId
+        ? { ...g, line_items: g.line_items.filter((_, i) => i !== index) }
+        : g
+    ));
+  }
+
+  function handleLineItemChange(pianoId: string, index: number, field: keyof LineItem, value: string) {
+    setPianoGroups(pianoGroups.map((g) => {
+      if (g.piano_id !== pianoId) return g;
+      const updated = [...g.line_items];
+      const item = { ...updated[index] };
+
+      if (field === "description") {
+        item.description = value;
+        if (SERVICE_RATES[value] !== undefined) {
+          item.unit_price = SERVICE_RATES[value];
+          item.line_total = item.quantity * item.unit_price;
+        }
+      } else if (field === "quantity") {
+        item.quantity = parseFloat(value) || 0;
+        item.line_total = item.quantity * item.unit_price;
+      } else if (field === "unit_price") {
+        item.unit_price = parseFloat(value) || 0;
         item.line_total = item.quantity * item.unit_price;
       }
-    } else if (field === "quantity") {
-      item.quantity = parseFloat(value) || 0;
-      item.line_total = item.quantity * item.unit_price;
-    } else if (field === "unit_price") {
-      item.unit_price = parseFloat(value) || 0;
-      item.line_total = item.quantity * item.unit_price;
-    }
 
-    updated[index] = item;
-    setLineItems(updated);
+      updated[index] = item;
+      return { ...g, line_items: updated };
+    }));
   }
 
-  function addLineItem() {
-    setLineItems([...lineItems, { description: "", quantity: 1, unit_price: 0, line_total: 0 }]);
-  }
-
-  function removeLineItem(index: number) {
-    setLineItems(lineItems.filter((_, i) => i !== index));
-  }
-
-  const subtotal = lineItems.reduce((sum, item) => sum + item.line_total, 0);
+  const subtotal = pianoGroups.reduce(
+    (sum, g) => sum + g.line_items.reduce((s, item) => s + item.line_total, 0),
+    0
+  );
 
   function clientName(c: Client) {
     if (c.company_name) return c.company_name;
     return [c.first_name, c.last_name].filter(Boolean).join(" ");
   }
 
+  // Pianos available to add (not already in groups)
+  const availableToAdd = clientPianos.filter(
+    (p) => !pianoGroups.some((g) => g.piano_id === p.id)
+  );
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError("");
+
+    if (pianoGroups.length === 0) {
+      setError("Please add at least one piano to the invoice.");
+      setSaving(false);
+      return;
+    }
 
     const supabase = createClient();
 
@@ -218,29 +309,40 @@ function NewInvoiceContent() {
       .single();
 
     if (invError || !newInvoice) {
+      console.error("Invoice insert error:", invError);
       setError("Error creating invoice. Please try again.");
       setSaving(false);
       return;
     }
 
-    const items = lineItems
-      .filter((item) => item.description && item.line_total > 0)
-      .map((item) => ({
-        invoice_id: newInvoice.id,
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        line_total: item.line_total,
-      }));
+    const items = pianoGroups.flatMap((g) =>
+      g.line_items
+        .filter((item) => item.description && item.line_total > 0)
+        .map((item) => ({
+          invoice_id: newInvoice.id,
+          piano_id: g.piano_id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          line_total: item.line_total,
+        }))
+    );
 
     if (items.length > 0) {
-      await supabase.from("invoice_items").insert(items);
+      const { error: itemsError } = await supabase.from("invoice_items").insert(items);
+      if (itemsError) {
+        console.error("Invoice items insert error:", itemsError);
+        setError("Invoice created but line items failed. Please review.");
+        setSaving(false);
+        return;
+      }
     }
 
     router.push(`/admin/invoices/${newInvoice.id}`);
   }
 
   if (loading) return <div className="admin-loading">Loading...</div>;
+
   return (
     <div className="admin-wrapper">
       <AdminHeader title="New Invoice" />
@@ -252,7 +354,13 @@ function NewInvoiceContent() {
             <h2 className="form-section-title">Client</h2>
             <div className="form-field">
               <label>Client <span className="form-required">*</span></label>
-              <select name="client_id" value={form.client_id} onChange={handleFormChange} required>
+              <select
+                name="client_id"
+                value={form.client_id}
+                onChange={handleFormChange}
+                required
+                disabled={!!appointmentId}
+              >
                 <option value="">Select a client...</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>{clientName(c)}</option>
@@ -320,77 +428,123 @@ function NewInvoiceContent() {
             </div>
           </div>
 
-          {/* Line Items */}
+          {/* Pianos & Services */}
           <div className="form-section">
-            <h2 className="form-section-title">Services</h2>
-            <table className="admin-table" style={{ marginBottom: "1rem" }}>
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th style={{ width: "100px" }}>Qty / Hrs</th>
-                  <th style={{ width: "120px" }}>Unit Price</th>
-                  <th style={{ width: "120px" }}>Total</th>
-                  <th style={{ width: "40px" }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map((item, index) => (
-                  <tr key={index}>
-                    <td>
-                      <select
-                        value={item.description}
-                        onChange={(e) => handleLineItemChange(index, "description", e.target.value)}
-                        style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
-                      >
-                        <option value="">Select a service...</option>
-                        <option value="Standard Tuning">Standard Tuning</option>
-                        <option value="Pitch Raise">Pitch Raise</option>
-                        <option value="Regulation">Regulation</option>
-                        <option value="Voicing">Voicing</option>
-                        <option value="Piano Life Saver Maintenance">Piano Life Saver Maintenance</option>
-                        <option value="Piano Life Saver Installation">Piano Life Saver Installation</option>
-                        <option value="Repairs / Other">Repairs / Other</option>
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleLineItemChange(index, "quantity", e.target.value)}
-                        min="0"
-                        step="0.5"
-                        style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={item.unit_price}
-                        onChange={(e) => handleLineItemChange(index, "unit_price", e.target.value)}
-                        min="0"
-                        step="0.01"
-                        style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
-                      />
-                    </td>
-                    <td style={{ fontWeight: 600 }}>${item.line_total.toFixed(2)}</td>
-                    <td>
-                      {lineItems.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeLineItem(index)}
-                          style={{ background: "none", border: "none", color: "#c62828", cursor: "pointer", fontSize: "1.2rem", fontWeight: 600 }}
-                        >
-                          x
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button type="button" onClick={addLineItem} className="admin-btn-outline">
-              + Add Line Item
-            </button>
+            <h2 className="form-section-title">Pianos & Services</h2>
+
+            {pianoGroups.length === 0 && (
+              <p style={{ color: "#888", marginBottom: "1rem" }}>
+                {form.client_id
+                  ? "No pianos added yet. Use the dropdown below to add a piano."
+                  : "Select a client first to add pianos."}
+              </p>
+            )}
+
+            {pianoGroups.map((g) => (
+              <div key={g.piano_id} style={{ marginBottom: "2rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                  <h3 style={{ margin: 0, fontSize: "1rem" }}>{g.piano_label}</h3>
+                  <button
+                    type="button"
+                    onClick={() => removePianoGroup(g.piano_id)}
+                    style={{ background: "none", border: "none", color: "#c62828", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}
+                  >
+                    Remove piano
+                  </button>
+                </div>
+
+                <table className="admin-table" style={{ marginBottom: "0.75rem" }}>
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th style={{ width: "100px" }}>Qty / Hrs</th>
+                      <th style={{ width: "120px" }}>Unit Price</th>
+                      <th style={{ width: "120px" }}>Total</th>
+                      <th style={{ width: "40px" }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.line_items.map((item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <select
+                            value={item.description}
+                            onChange={(e) => handleLineItemChange(g.piano_id, index, "description", e.target.value)}
+                            style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
+                          >
+                            <option value="">Select a service...</option>
+                            <option value="Standard Tuning">Standard Tuning</option>
+                            <option value="Pitch Raise">Pitch Raise</option>
+                            <option value="Regulation">Regulation</option>
+                            <option value="Voicing">Voicing</option>
+                            <option value="Piano Life Saver Maintenance">Piano Life Saver Maintenance</option>
+                            <option value="Piano Life Saver Installation">Piano Life Saver Installation</option>
+                            <option value="Repairs / Other">Repairs / Other</option>
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleLineItemChange(g.piano_id, index, "quantity", e.target.value)}
+                            min="0"
+                            step="0.5"
+                            style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            value={item.unit_price}
+                            onChange={(e) => handleLineItemChange(g.piano_id, index, "unit_price", e.target.value)}
+                            min="0"
+                            step="0.01"
+                            style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
+                          />
+                        </td>
+                        <td style={{ fontWeight: 600 }}>${item.line_total.toFixed(2)}</td>
+                        <td>
+                          {g.line_items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeLineItem(g.piano_id, index)}
+                              style={{ background: "none", border: "none", color: "#c62828", cursor: "pointer", fontSize: "1.2rem", fontWeight: 600 }}
+                            >
+                              x
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <button type="button" onClick={() => addLineItem(g.piano_id)} className="admin-btn-outline" style={{ fontSize: "0.85rem" }}>
+                  + Add line item
+                </button>
+              </div>
+            ))}
+
+            {availableToAdd.length > 0 && (
+              <div style={{ marginTop: "1rem" }}>
+                <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", color: "#666" }}>
+                  Add another piano to this invoice:
+                </label>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) addPianoGroup(e.target.value);
+                  }}
+                  style={{ padding: "0.5rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
+                >
+                  <option value="">Select a piano...</option>
+                  {availableToAdd.map((p) => (
+                    <option key={p.id} value={p.id}>{pianoLabel(p)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div style={{ marginTop: "1.5rem", textAlign: "right" }}>
               <div style={{ fontSize: "1rem", color: "#666", marginBottom: "0.5rem" }}>
                 Subtotal: <strong>${subtotal.toFixed(2)}</strong>
