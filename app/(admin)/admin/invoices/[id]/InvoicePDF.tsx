@@ -56,23 +56,32 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     marginBottom: 2,
   },
-  divider: {
-    borderBottom: "1px solid #1a1a1a",
-    marginBottom: 8,
+  pianoSection: {
+    marginBottom: 18,
+  },
+  pianoSectionHeader: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    backgroundColor: "#f4f4f4",
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    marginBottom: 4,
   },
   tableHeader: {
     flexDirection: "row",
-    borderBottom: "2px solid #1a1a1a",
-    paddingBottom: 6,
-    marginBottom: 4,
+    borderBottom: "1px solid #1a1a1a",
+    paddingBottom: 4,
+    marginBottom: 2,
     fontFamily: "Helvetica-Bold",
     fontSize: 9,
+    paddingHorizontal: 4,
   },
   tableRow: {
     flexDirection: "row",
     borderBottom: "1px solid #eee",
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingTop: 5,
+    paddingBottom: 5,
+    paddingHorizontal: 4,
   },
   colDesc: { flex: 3 },
   colQty: { flex: 1, textAlign: "center" },
@@ -112,6 +121,19 @@ const styles = StyleSheet.create({
   },
 });
 
+type LineItem = {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  piano_id: string | null;
+  pianos?: {
+    make: string | null;
+    model: string | null;
+    type: string | null;
+  } | null;
+};
+
 type Props = {
   invoice: {
     invoice_number: number;
@@ -132,12 +154,7 @@ type Props = {
       phone: string | null;
     };
   };
-  lineItems: {
-    description: string;
-    quantity: number;
-    unit_price: number;
-    line_total: number;
-  }[];
+  lineItems: LineItem[];
 };
 
 function formatDate(dateStr: string) {
@@ -146,11 +163,32 @@ function formatDate(dateStr: string) {
   });
 }
 
+function pianoLabel(p: NonNullable<LineItem["pianos"]>): string {
+  return [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
+}
+
+// Group line items by piano. Items without a piano (legacy data) end up in a single "Other" group.
+type Group = { key: string; label: string | null; items: LineItem[] };
+
+function groupByPiano(items: LineItem[]): Group[] {
+  const groups = new Map<string, Group>();
+  for (const item of items) {
+    const key = item.piano_id ?? "__no_piano__";
+    const label = item.piano_id && item.pianos ? pianoLabel(item.pianos) : null;
+    if (!groups.has(key)) {
+      groups.set(key, { key, label, items: [] });
+    }
+    groups.get(key)!.items.push(item);
+  }
+  return Array.from(groups.values());
+}
+
 export default function InvoicePDF({ invoice, lineItems }: Props) {
   const subtotal = lineItems.reduce((sum, item) => sum + item.line_total, 0);
   const isPaid = invoice.status === "Paid";
   const client = invoice.clients;
   const clientName = client.company_name || [client.first_name, client.last_name].filter(Boolean).join(" ");
+  const groups = groupByPiano(lineItems);
 
   return (
     <Document>
@@ -181,19 +219,26 @@ export default function InvoicePDF({ invoice, lineItems }: Props) {
           {client.phone && <Text>{client.phone}</Text>}
         </View>
 
-        {/* Line Items */}
-        <View style={styles.tableHeader}>
-          <Text style={styles.colDesc}>Description</Text>
-          <Text style={styles.colQty}>Qty</Text>
-          <Text style={styles.colPrice}>Unit Price</Text>
-          <Text style={styles.colTotal}>Total</Text>
-        </View>
-        {lineItems.map((item, i) => (
-          <View key={i} style={styles.tableRow}>
-            <Text style={styles.colDesc}>{item.description}</Text>
-            <Text style={styles.colQty}>{item.quantity}</Text>
-            <Text style={styles.colPrice}>${item.unit_price.toFixed(2)}</Text>
-            <Text style={styles.colTotal}>${item.line_total.toFixed(2)}</Text>
+        {/* Line Items, grouped by piano */}
+        {groups.map((g) => (
+          <View key={g.key} style={styles.pianoSection}>
+            {g.label && (
+              <Text style={styles.pianoSectionHeader}>{g.label}</Text>
+            )}
+            <View style={styles.tableHeader}>
+              <Text style={styles.colDesc}>Description</Text>
+              <Text style={styles.colQty}>Qty</Text>
+              <Text style={styles.colPrice}>Unit Price</Text>
+              <Text style={styles.colTotal}>Total</Text>
+            </View>
+            {g.items.map((item, i) => (
+              <View key={i} style={styles.tableRow}>
+                <Text style={styles.colDesc}>{item.description}</Text>
+                <Text style={styles.colQty}>{item.quantity}</Text>
+                <Text style={styles.colPrice}>${item.unit_price.toFixed(2)}</Text>
+                <Text style={styles.colTotal}>${item.line_total.toFixed(2)}</Text>
+              </View>
+            ))}
           </View>
         ))}
 
