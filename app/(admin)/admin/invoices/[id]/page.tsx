@@ -37,7 +37,32 @@ type LineItem = {
   quantity: number;
   unit_price: number;
   line_total: number;
+  piano_id: string | null;
+  pianos: {
+    make: string | null;
+    model: string | null;
+    type: string | null;
+  } | null;
 };
+
+type Group = { key: string; label: string | null; items: LineItem[] };
+
+function pianoLabel(p: NonNullable<LineItem["pianos"]>): string {
+  return [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
+}
+
+function groupByPiano(items: LineItem[]): Group[] {
+  const groups = new Map<string, Group>();
+  for (const item of items) {
+    const key = item.piano_id ?? "__no_piano__";
+    const label = item.piano_id && item.pianos ? pianoLabel(item.pianos) : null;
+    if (!groups.has(key)) {
+      groups.set(key, { key, label, items: [] });
+    }
+    groups.get(key)!.items.push(item);
+  }
+  return Array.from(groups.values());
+}
 
 export default function InvoiceDetail() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -74,12 +99,15 @@ export default function InvoiceDetail() {
 
     const { data: itemData } = await supabase
       .from("invoice_items")
-      .select("*")
+      .select(`
+        id, description, quantity, unit_price, line_total, piano_id,
+        pianos (make, model, type)
+      `)
       .eq("invoice_id", id)
       .order("created_at", { ascending: true });
 
     if (invData) setInvoice(invData as unknown as Invoice);
-    if (itemData) setLineItems(itemData);
+    if (itemData) setLineItems(itemData as unknown as LineItem[]);
     setLoading(false);
   }
 
@@ -144,16 +172,13 @@ export default function InvoiceDetail() {
     return [c.first_name, c.last_name].filter(Boolean).join(" ");
   }
 
-  function clientAddress(c: Invoice["clients"]) {
-    return [c.address, c.city, c.state, c.zip].filter(Boolean).join(", ");
-  }
-
   const subtotal = lineItems.reduce((sum, item) => sum + item.line_total, 0);
   const isPaid = invoice?.status === "Paid";
+  const groups = groupByPiano(lineItems);
 
   if (loading) return <div className="admin-loading">Loading invoice...</div>;
   if (!invoice) return <div className="admin-loading">Invoice not found.</div>;
- return (
+  return (
     <div className="admin-wrapper">
       <AdminHeader
         title={`INV-${invoice.invoice_number}`}
@@ -271,30 +296,45 @@ export default function InvoiceDetail() {
             </div>
           </div>
 
-          {/* Line items */}
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "1.5rem" }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid #1a1a1a" }}>
-                <th style={{ textAlign: "left", padding: "0.5rem 0", fontSize: "0.85rem" }}>Description</th>
-                <th style={{ textAlign: "center", padding: "0.5rem 0", fontSize: "0.85rem", width: "100px" }}>Qty</th>
-                <th style={{ textAlign: "right", padding: "0.5rem 0", fontSize: "0.85rem", width: "120px" }}>Unit Price</th>
-                <th style={{ textAlign: "right", padding: "0.5rem 0", fontSize: "0.85rem", width: "120px" }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lineItems.map((item) => (
-                <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "0.75rem 0", fontSize: "0.95rem" }}>{item.description}</td>
-                  <td style={{ textAlign: "center", padding: "0.75rem 0", fontSize: "0.95rem" }}>{item.quantity}</td>
-                  <td style={{ textAlign: "right", padding: "0.75rem 0", fontSize: "0.95rem" }}>${item.unit_price.toFixed(2)}</td>
-                  <td style={{ textAlign: "right", padding: "0.75rem 0", fontSize: "0.95rem" }}>${item.line_total.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Line items, grouped by piano */}
+          {groups.map((g) => (
+            <div key={g.key} style={{ marginBottom: "1.5rem" }}>
+              {g.label && (
+                <div style={{
+                  fontSize: "1rem",
+                  fontWeight: 700,
+                  backgroundColor: "#f4f4f4",
+                  padding: "0.5rem 0.75rem",
+                  marginBottom: "0.25rem",
+                }}>
+                  {g.label}
+                </div>
+              )}
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #1a1a1a" }}>
+                    <th style={{ textAlign: "left", padding: "0.5rem 0.5rem", fontSize: "0.85rem" }}>Description</th>
+                    <th style={{ textAlign: "center", padding: "0.5rem 0.5rem", fontSize: "0.85rem", width: "100px" }}>Qty</th>
+                    <th style={{ textAlign: "right", padding: "0.5rem 0.5rem", fontSize: "0.85rem", width: "120px" }}>Unit Price</th>
+                    <th style={{ textAlign: "right", padding: "0.5rem 0.5rem", fontSize: "0.85rem", width: "120px" }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {g.items.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "0.6rem 0.5rem", fontSize: "0.95rem" }}>{item.description}</td>
+                      <td style={{ textAlign: "center", padding: "0.6rem 0.5rem", fontSize: "0.95rem" }}>{item.quantity}</td>
+                      <td style={{ textAlign: "right", padding: "0.6rem 0.5rem", fontSize: "0.95rem" }}>${item.unit_price.toFixed(2)}</td>
+                      <td style={{ textAlign: "right", padding: "0.6rem 0.5rem", fontSize: "0.95rem" }}>${item.line_total.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
 
           {/* Totals */}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
             <div style={{ width: "250px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", fontSize: "0.95rem" }}>
                 <span>Subtotal</span>
@@ -336,4 +376,4 @@ export default function InvoiceDetail() {
       </div>
     </div>
   );
-} 
+}
