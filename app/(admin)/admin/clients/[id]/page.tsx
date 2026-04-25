@@ -164,18 +164,18 @@ export default function ClientRecord() {
                 {client.email
                   ? <a href={`mailto:${client.email}`} style={{ color: "#1a1a1a" }}>{client.email}</a>
                   : "—"}
-                {client.alternate_email && (
-                  <div className="record-field">
-                    <span className="record-label">Alternate Email</span>
-                    <span className="record-value">
-                      <a href={`mailto:${client.alternate_email}`} style={{ color: "#1a1a1a" }}>
-                        {client.alternate_email}
-                      </a>
-                    </span>
-                  </div>
-                )}
               </span>
             </div>
+            {client.alternate_email && (
+              <div className="record-field">
+                <span className="record-label">Alternate Email</span>
+                <span className="record-value">
+                  <a href={`mailto:${client.alternate_email}`} style={{ color: "#1a1a1a" }}>
+                    {client.alternate_email}
+                  </a>
+                </span>
+              </div>
+            )}
             <div className="record-field">
               <span className="record-label">Address</span>
               <span className="record-value">{formatAddress(client) || "—"}</span>

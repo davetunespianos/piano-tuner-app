@@ -28,6 +28,7 @@ type Invoice = {
     zip: string | null;
     phone: string | null;
     email: string | null;
+    alternate_email: string | null;
   };
 };
 
@@ -70,6 +71,9 @@ export default function InvoiceDetail() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showEmailPicker, setShowEmailPicker] = useState(false);
+  const [emailToPrimary, setEmailToPrimary] = useState(true);
+  const [emailToAlternate, setEmailToAlternate] = useState(false);
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -92,7 +96,7 @@ export default function InvoiceDetail() {
       .select(`
         id, invoice_number, invoice_date, due_date, status,
         notes, payment_method, paid_date,
-        clients (id, first_name, last_name, company_name, address, city, state, zip, phone, email)
+        clients (id, first_name, last_name, company_name, address, city, state, zip, phone, email, alternate_email)
       `)
       .eq("id", id)
       .single();
@@ -141,20 +145,40 @@ export default function InvoiceDetail() {
     router.push("/admin/invoices");
   }
 
-  async function handleEmailInvoice() {
+  function openEmailPicker() {
     if (!invoice) return;
-    if (!confirm(`Send invoice #${invoice.invoice_number} to ${invoice.clients.email}?`)) return;
+    if (!invoice.clients.email && !invoice.clients.alternate_email) {
+      alert("This client has no email addresses on file.");
+      return;
+    }
+    setEmailToPrimary(!!invoice.clients.email);
+    setEmailToAlternate(!!invoice.clients.alternate_email);
+    setShowEmailPicker(true);
+  }
+
+  async function sendInvoiceEmail() {
+    if (!invoice) return;
+    const recipients: string[] = [];
+    if (emailToPrimary && invoice.clients.email) recipients.push(invoice.clients.email);
+    if (emailToAlternate && invoice.clients.alternate_email) recipients.push(invoice.clients.alternate_email);
+
+    if (recipients.length === 0) {
+      alert("Please select at least one recipient.");
+      return;
+    }
+
+    setShowEmailPicker(false);
     setSending(true);
     try {
       const res = await fetch("/api/email-invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: id }),
+        body: JSON.stringify({ invoiceId: id, recipients }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       await fetchInvoice();
-      alert("Invoice sent successfully!");
+      alert(`Invoice sent successfully to ${recipients.length} recipient${recipients.length > 1 ? "s" : ""}!`);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     }
@@ -195,7 +219,7 @@ export default function InvoiceDetail() {
             )}
             {invoice && (
               <button
-                onClick={handleEmailInvoice}
+                onClick={openEmailPicker}
                 disabled={sending}
                 className="admin-btn"
               >
@@ -373,6 +397,76 @@ export default function InvoiceDetail() {
           </div>
 
         </div>
+
+        {/* Email recipient picker modal */}
+        {showEmailPicker && invoice && (
+          <div
+            onClick={() => setShowEmailPicker(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#fff",
+                padding: "1.5rem",
+                borderRadius: "8px",
+                maxWidth: "400px",
+                width: "90%",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
+              }}
+            >
+              <h3 style={{ marginTop: 0, marginBottom: "1rem" }}>Send invoice to:</h3>
+
+              {invoice.clients.email && (
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={emailToPrimary}
+                    onChange={(e) => setEmailToPrimary(e.target.checked)}
+                    style={{ width: "16px", height: "16px" }}
+                  />
+                  <span>{invoice.clients.email} <span style={{ color: "#888", fontSize: "0.85rem" }}>(primary)</span></span>
+                </label>
+              )}
+
+              {invoice.clients.alternate_email && (
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={emailToAlternate}
+                    onChange={(e) => setEmailToAlternate(e.target.checked)}
+                    style={{ width: "16px", height: "16px" }}
+                  />
+                  <span>{invoice.clients.alternate_email} <span style={{ color: "#888", fontSize: "0.85rem" }}>(alternate)</span></span>
+                </label>
+              )}
+
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => setShowEmailPicker(false)}
+                  className="admin-btn-outline"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendInvoiceEmail}
+                  className="admin-btn"
+                  disabled={!emailToPrimary && !emailToAlternate}
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
