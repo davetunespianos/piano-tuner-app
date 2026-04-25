@@ -94,6 +94,7 @@ export default function EditClient() {
         first_name: form.first_name,
         last_name: form.last_name || null,
         email: form.email || null,
+        alternate_email: form.alternate_email || null,
         phone: form.phone || null,
         address: form.address || null,
         city: form.city || null,
