@@ -850,7 +850,7 @@ footer a:hover { text-decoration: underline; }
   font-family: inherit;
   background: none;
   border: none;
-  text-align: left;
+  text-align: right;
   cursor: pointer;
   border-bottom: 1px solid #333;
   transition: color 0.2s;
