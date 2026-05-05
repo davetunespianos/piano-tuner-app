@@ -17,17 +17,53 @@ export default function AdminLogin() {
     setError("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
+    if (signInError) {
       setError("Invalid email or password. Please try again.");
       setLoading(false);
-    } else {
-      router.push("/admin/dashboard");
+      return;
     }
+
+    // Check whether this account requires a second factor
+    const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalError) {
+      setError("Could not verify session. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    const needsMFA = aalData?.currentLevel === "aal1" && aalData?.nextLevel === "aal2";
+
+    if (!needsMFA) {
+      router.push("/admin/dashboard");
+      return;
+    }
+
+    // Account requires MFA. Check if this device is already trusted.
+    try {
+      const trustRes = await fetch("/api/auth/verify-trusted-device", { method: "POST" });
+      const trustData = await trustRes.json();
+
+      if (trustData.trusted) {
+        // Trusted device — but the session is still aal1. We need to satisfy
+        // the AAL2 requirement silently by performing a TOTP challenge using
+        // the device-trust as proof. Since we can't bypass Supabase's AAL
+        // without an actual TOTP code, on a trusted device we still elevate
+        // the session by skipping the prompt UI — but the user is sent
+        // straight in. The middleware (commit 4) will allow aal1 access if
+        // the trusted-device cookie is valid.
+        router.push("/admin/dashboard");
+        return;
+      }
+    } catch {
+      // If the trust check fails, fall through to the MFA prompt — fail closed
+    }
+
+    router.push("/admin/login/mfa");
   }
 
   return (
