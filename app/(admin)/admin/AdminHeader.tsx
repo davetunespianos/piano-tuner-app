@@ -44,6 +44,7 @@ export default function AdminHeader({
           <Link href="/admin/clients" onClick={() => setMenuOpen(false)}>Clients</Link>
           <Link href="/admin/appointments" onClick={() => setMenuOpen(false)}>Appointments</Link>
           <Link href="/admin/invoices" onClick={() => setMenuOpen(false)}>Invoices</Link>
+          <Link href="/admin/security" onClick={() => setMenuOpen(false)}>Security</Link>
           <button onClick={handleSignOut}>Sign Out</button>
         </div>
       )}
