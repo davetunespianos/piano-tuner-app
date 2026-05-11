@@ -13,7 +13,7 @@ function DashboardContent() {
   const connected = searchParams.get("connected");
   const connError = searchParams.get("error");
   const [revenue, setRevenue] = useState({
-    paidThisMonth: 0,
+    paidTotal: 0,
     outstanding: 0,
     overdue: 0,
     totalInvoiced: 0,
@@ -39,7 +39,14 @@ function DashboardContent() {
 
     if (!invoices) return;
 
-    let paidThisMonth = 0;
+    // Compute today's date in Eastern time as a YYYY-MM-DD string so we can
+    // compare it directly to invoice due_date strings without timezone drift.
+    const todayEastern = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Detroit",
+      year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(new Date());
+
+    let paidTotal = 0;
     let outstanding = 0;
     let overdue = 0;
     let totalInvoiced = 0;
@@ -47,12 +54,19 @@ function DashboardContent() {
     invoices.forEach((inv: any) => {
       const total = inv.invoice_items.reduce((sum: number, item: any) => sum + item.line_total, 0);
       totalInvoiced += total;
-      if (inv.status === "Paid") paidThisMonth += total;
-      else if (inv.status === "Overdue") overdue += total;
-      else if (["Open", "Sent"].includes(inv.status)) outstanding += total;
+
+      if (inv.status === "Paid") {
+        paidTotal += total;
+      } else if (["Open", "Sent", "Overdue"].includes(inv.status)) {
+        outstanding += total;
+        // Recompute overdue: any unpaid invoice whose due_date is in the past
+        if (inv.due_date && inv.due_date < todayEastern) {
+          overdue += total;
+        }
+      }
     });
 
-    setRevenue({ paidThisMonth, outstanding, overdue, totalInvoiced });
+    setRevenue({ paidTotal, outstanding, overdue, totalInvoiced });
   }
 
   if (loading) return <div className="admin-loading">Loading...</div>;
@@ -87,15 +101,15 @@ function DashboardContent() {
             </div>
             <div className="dashboard-grid" style={{ marginTop: "1rem" }}>
               <div className="dashboard-card" style={{ pointerEvents: "none" }}>
-                <div className="dashboard-card-sub">Total Invoiced</div>
+                <div className="dashboard-card-sub">Total Invoiced (All Time)</div>
                 <div className="dashboard-card-title" style={{ fontSize: "1.5rem", marginTop: "0.25rem" }}>
                   ${revenue.totalInvoiced.toFixed(2)}
                 </div>
               </div>
               <div className="dashboard-card" style={{ pointerEvents: "none" }}>
-                <div className="dashboard-card-sub">Collected (Paid)</div>
+                <div className="dashboard-card-sub">Collected (All Time)</div>
                 <div className="dashboard-card-title" style={{ fontSize: "1.5rem", marginTop: "0.25rem", color: "#2e7d32" }}>
-                  ${revenue.paidThisMonth.toFixed(2)}
+                  ${revenue.paidTotal.toFixed(2)}
                 </div>
               </div>
               <div className="dashboard-card" style={{ pointerEvents: "none" }}>

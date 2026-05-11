@@ -61,7 +61,8 @@ export default function InvoiceList() {
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric"
+      month: "short", day: "numeric", year: "numeric",
+      timeZone: "America/Detroit"
     });
   }
 
