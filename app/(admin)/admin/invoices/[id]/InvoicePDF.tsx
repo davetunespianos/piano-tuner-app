@@ -158,11 +158,11 @@ type Props = {
 };
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
-    timeZone: "America/Detroit"
-  });
-}
+    const [year, month, day] = dateStr.slice(0, 10).split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+      month: "long", day: "numeric", year: "numeric"
+    });
+  }
 
 function pianoLabel(p: NonNullable<LineItem["pianos"]>): string {
   return [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
