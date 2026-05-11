@@ -291,7 +291,7 @@ function NewInvoiceContent() {
       .limit(1)
       .single();
 
-    const nextNumber = lastInvoice ? lastInvoice.invoice_number + 1 : 425;
+    const nextNumber = lastInvoice ? lastInvoice.invoice_number + 1 : 435;
 
     const { data: newInvoice, error: invError } = await supabase
       .from("invoices")
