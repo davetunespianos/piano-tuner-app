@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCalendarEvents } from "../../../lib/calendar";
 
 const AVAILABLE_TIMES = ["09:00", "12:00", "15:00"];
+const APPOINTMENT_DURATION_MINUTES = 120;
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -18,22 +19,40 @@ export async function GET(request: NextRequest) {
 
     const events = await getCalendarEvents(dateMin, dateMax);
 
-    const bookedTimes = events.map((event: any) => {
+    // Parse each event into a [start, end] interval as UTC milliseconds
+    const busyIntervals: [number, number][] = [];
+    for (const event of events) {
       const startRaw = event.start?.dateTime || event.start?.date;
-      if (!startRaw) return null;
-      // Format the event start in Eastern time so we can match against AVAILABLE_TIMES
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Detroit",
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-      }).formatToParts(new Date(startRaw));
-      const hours = parts.find((p) => p.type === "hour")?.value ?? "00";
-      const minutes = parts.find((p) => p.type === "minute")?.value ?? "00";
-      return `${hours}:${minutes}`;
-    }).filter(Boolean);
+      const endRaw = event.end?.dateTime || event.end?.date;
+      if (!startRaw || !endRaw) continue;
 
-    const availableTimes = AVAILABLE_TIMES.filter((t) => !bookedTimes.includes(t));
+      // All-day events have date-only values like "2026-05-15".
+      // Google's "end" for an all-day event is exclusive (the day AFTER), so the interval
+      // [start of date, start of end-date] correctly covers the entire all-day block.
+      const isAllDay = !event.start?.dateTime;
+      const startMs = isAllDay
+        ? easternWallTimeToDate(startRaw, "00:00").getTime()
+        : new Date(startRaw).getTime();
+      const endMs = isAllDay
+        ? easternWallTimeToDate(endRaw, "00:00").getTime()
+        : new Date(endRaw).getTime();
+
+      busyIntervals.push([startMs, endMs]);
+    }
+
+    // For each available slot, check whether ANY calendar event overlaps its appointment window
+    const availableTimes = AVAILABLE_TIMES.filter((slot) => {
+      const slotStart = easternWallTimeToDate(date, slot).getTime();
+      const slotEnd = slotStart + APPOINTMENT_DURATION_MINUTES * 60 * 1000;
+
+      // Slot is unavailable if any busy interval overlaps it.
+      // Two intervals [a, b] and [c, d] overlap iff a < d AND c < b
+      const conflict = busyIntervals.some(([busyStart, busyEnd]) =>
+        slotStart < busyEnd && busyStart < slotEnd
+      );
+
+      return !conflict;
+    });
 
     return NextResponse.json({ availableTimes });
   } catch (error) {
