@@ -215,6 +215,9 @@ export default function InvoicePDF({ invoice, lineItems }: Props) {
         <View style={styles.billTo}>
           <Text style={styles.billToLabel}>Bill To</Text>
           <Text style={styles.billToName}>{clientName}</Text>
+          {client.company_name && (
+            <Text>{[client.first_name, client.last_name].filter(Boolean).join(" ")}</Text>
+          )}
           {client.address && <Text>{client.address}</Text>}
           <Text>{[client.city, client.state, client.zip].filter(Boolean).join(", ")}</Text>
           {client.phone && <Text>{client.phone}</Text>}
