@@ -315,6 +315,9 @@ export default function InvoiceDetail() {
             </div>
             <div style={{ fontSize: "0.95rem", lineHeight: 1.6 }}>
               <strong>{clientName(invoice.clients)}</strong><br />
+              {invoice.clients.company_name && (
+                <>{[invoice.clients.first_name, invoice.clients.last_name].filter(Boolean).join(" ")}<br /></>
+              )}
               {invoice.clients.address && <>{invoice.clients.address}<br /></>}
               {[invoice.clients.city, invoice.clients.state, invoice.clients.zip].filter(Boolean).join(", ")}
               {invoice.clients.phone && <><br />{invoice.clients.phone}</>}
