@@ -212,7 +212,7 @@ export default function InvoiceDetail() {
             {invoice && (
               <PDFDownloadLink
                 document={<InvoicePDF invoice={invoice} lineItems={lineItems} />}
-                fileName={`invoice-${invoice.invoice_number}.pdf`}
+                fileName={`Invoice_#${invoice.invoice_number}_David_Cossey_Piano_Tuner.pdf`}
                 className="admin-btn"
               >
                 {({ loading: pdfLoading }) => pdfLoading ? "Generating..." : "Download PDF"}
