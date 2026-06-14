@@ -12,11 +12,15 @@ type Invoice = {
   invoice_date: string;
   due_date: string;
   status: string;
+  payment_method: string | null;
   clients: {
     first_name: string;
     last_name: string | null;
     company_name: string | null;
   };
+  invoice_items: {
+    line_total: number;
+  }[];
 };
 
 export default function InvoiceList() {
@@ -46,7 +50,9 @@ export default function InvoiceList() {
         invoice_date,
         due_date,
         status,
-        clients (first_name, last_name, company_name)
+        payment_method,
+        clients (first_name, last_name, company_name),
+        invoice_items (line_total)
       `)
       .order("invoice_number", { ascending: false });
 
@@ -66,13 +72,17 @@ export default function InvoiceList() {
     });
   }
 
+  function invoiceTotal(inv: Invoice) {
+    return inv.invoice_items.reduce((sum, item) => sum + item.line_total, 0);
+  }
+
   const filtered = invoices.filter((inv) => {
     if (filter === "all") return true;
     return inv.status.toLowerCase() === filter;
   });
 
   if (loading) return <div className="admin-loading">Loading invoices...</div>;
- return (
+  return (
     <div className="admin-wrapper">
       <AdminHeader
         title="Invoices"
@@ -100,6 +110,8 @@ export default function InvoiceList() {
                 <th>Client</th>
                 <th>Invoice Date</th>
                 <th>Due Date</th>
+                <th>Amount</th>
+                <th>Payment Method</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -114,6 +126,8 @@ export default function InvoiceList() {
                   <td>{clientName(inv)}</td>
                   <td>{formatDate(inv.invoice_date)}</td>
                   <td>{formatDate(inv.due_date)}</td>
+                  <td>${invoiceTotal(inv).toFixed(2)}</td>
+                  <td>{inv.payment_method || "—"}</td>
                   <td>
                     <span className={`status-badge status-${inv.status.toLowerCase()}`}>
                       {inv.status}
@@ -127,4 +141,4 @@ export default function InvoiceList() {
       </div>
     </div>
   );
-} 
+}
