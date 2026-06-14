@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
 
     const emailLines = [
       `To: ${client.email}`,
+      `Bcc: ${process.env.BCC_EMAIL || "davetunespianos@gmail.com"}`,
       `Subject: Your Piano Service Appointment Has Been Added To My Calendar`,
       `MIME-Version: 1.0`,
       `Content-Type: multipart/mixed; boundary="${boundary}"`,
