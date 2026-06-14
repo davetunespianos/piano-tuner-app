@@ -2,7 +2,7 @@
 
 import AdminHeader from "../../AdminHeader";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense, useRef } from "react"
 import { createClient } from "../../../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -32,7 +32,6 @@ type LineItem = {
   line_total: number;
 };
 
-// A "piano group" represents one piano on the invoice and its line items
 type PianoGroup = {
   piano_id: string;
   piano_label: string;
@@ -76,6 +75,23 @@ function NewInvoiceContent() {
   });
   const [pianoGroups, setPianoGroups] = useState<PianoGroup[]>([]);
   const [isNet30, setIsNet30] = useState(false);
+
+  // Client search state
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const [selectedClientName, setSelectedClientName] = useState("");
+  const clientSearchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (clientSearchRef.current && !clientSearchRef.current.contains(e.target as Node)) {
+        setClientDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -136,7 +152,6 @@ function NewInvoiceContent() {
 
         const apPianos = (appt.appointment_pianos as any[]) || [];
 
-        // Group by piano_id — one piano can have multiple services on the same appointment
         const groupsByPiano = new Map<string, PianoGroup>();
         for (const ap of apPianos) {
           if (!ap.pianos) continue;
@@ -161,7 +176,6 @@ function NewInvoiceContent() {
 
         setPianoGroups(Array.from(groupsByPiano.values()));
 
-        // Also load the client's full piano list so the user can add another piano if needed
         const { data: pianosData } = await supabase
           .from("pianos")
           .select("id, make, model, type")
@@ -169,10 +183,43 @@ function NewInvoiceContent() {
           .eq("is_active", true)
           .order("created_at", { ascending: true });
         if (pianosData) setClientPianos(pianosData);
+
+        // Pre-fill the client name display for appointment-linked invoices
+        if (data) {
+          const apptClient = data.find((c) => c.id === appt.client_id);
+          if (apptClient) setSelectedClientName(clientNameFromObj(apptClient));
+        }
       }
     }
 
     setLoading(false);
+  }
+
+  function clientNameFromObj(c: Client) {
+    if (c.company_name) return c.company_name;
+    return [c.first_name, c.last_name].filter(Boolean).join(" ");
+  }
+
+  // Filter clients based on search input
+  const filteredClients = clientSearch.trim().length === 0
+    ? []
+    : clients.filter((c) =>
+        clientNameFromObj(c).toLowerCase().includes(clientSearch.toLowerCase())
+      );
+
+  function selectClient(c: Client) {
+    setForm({ ...form, client_id: c.id });
+    setSelectedClientName(clientNameFromObj(c));
+    setClientSearch("");
+    setClientDropdownOpen(false);
+  }
+
+  function clearClient() {
+    setForm({ ...form, client_id: "" });
+    setSelectedClientName("");
+    setClientSearch("");
+    setPianoGroups([]);
+    setClientPianos([]);
   }
 
   function handleFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
@@ -204,7 +251,7 @@ function NewInvoiceContent() {
   function addPianoGroup(pianoId: string) {
     const piano = clientPianos.find((p) => p.id === pianoId);
     if (!piano) return;
-    if (pianoGroups.some((g) => g.piano_id === pianoId)) return; // already added
+    if (pianoGroups.some((g) => g.piano_id === pianoId)) return;
     setPianoGroups([
       ...pianoGroups,
       { piano_id: piano.id, piano_label: pianoLabel(piano), line_items: [emptyLineItem()] },
@@ -261,12 +308,6 @@ function NewInvoiceContent() {
     0
   );
 
-  function clientName(c: Client) {
-    if (c.company_name) return c.company_name;
-    return [c.first_name, c.last_name].filter(Boolean).join(" ");
-  }
-
-  // Pianos available to add (not already in groups)
   const availableToAdd = clientPianos.filter(
     (p) => !pianoGroups.some((g) => g.piano_id === p.id)
   );
@@ -275,6 +316,12 @@ function NewInvoiceContent() {
     e.preventDefault();
     setSaving(true);
     setError("");
+
+    if (!form.client_id) {
+      setError("Please select a client.");
+      setSaving(false);
+      return;
+    }
 
     if (pianoGroups.length === 0) {
       setError("Please add at least one piano to the invoice.");
@@ -355,18 +402,97 @@ function NewInvoiceContent() {
             <h2 className="form-section-title">Client</h2>
             <div className="form-field">
               <label>Client <span className="form-required">*</span></label>
-              <select
-                name="client_id"
-                value={form.client_id}
-                onChange={handleFormChange}
-                required
-                disabled={!!appointmentId}
-              >
-                <option value="">Select a client...</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{clientName(c)}</option>
-                ))}
-              </select>
+
+              {appointmentId ? (
+                // When coming from an appointment, show the client name as read-only
+                <input
+                  type="text"
+                  value={selectedClientName}
+                  disabled
+                  style={{ background: "#f4f4f4", color: "#888" }}
+                />
+              ) : form.client_id ? (
+                // Client already selected — show name with a clear button
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input
+                    type="text"
+                    value={selectedClientName}
+                    disabled
+                    style={{ flex: 1, background: "#f4f4f4", color: "#1a1a1a", fontWeight: 600 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={clearClient}
+                    style={{ background: "none", border: "1px solid #aaa", borderRadius: "4px", padding: "0.4rem 0.75rem", cursor: "pointer", color: "#666", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                // Search input + dropdown
+                <div ref={clientSearchRef} style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    value={clientSearch}
+                    onChange={(e) => {
+                      setClientSearch(e.target.value);
+                      setClientDropdownOpen(true);
+                    }}
+                    onFocus={() => setClientDropdownOpen(true)}
+                    placeholder="Type to search clients..."
+                    autoComplete="off"
+                  />
+                  {clientDropdownOpen && filteredClients.length > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "0 0 6px 6px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                      zIndex: 100,
+                      maxHeight: "220px",
+                      overflowY: "auto",
+                    }}>
+                      {filteredClients.map((c) => (
+                        <div
+                          key={c.id}
+                          onMouseDown={() => selectClient(c)}
+                          style={{
+                            padding: "0.6rem 0.9rem",
+                            cursor: "pointer",
+                            fontSize: "0.95rem",
+                            borderBottom: "1px solid #f0f0f0",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "#f4f4f4")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                        >
+                          {clientNameFromObj(c)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {clientDropdownOpen && clientSearch.trim().length > 0 && filteredClients.length === 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "0 0 6px 6px",
+                      padding: "0.6rem 0.9rem",
+                      fontSize: "0.9rem",
+                      color: "#888",
+                      zIndex: 100,
+                    }}>
+                      No clients found matching "{clientSearch}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -583,6 +709,7 @@ function NewInvoiceContent() {
     </div>
   );
 }
+
 export default function NewInvoice() {
   return (
     <Suspense fallback={<div className="admin-loading">Loading...</div>}>
