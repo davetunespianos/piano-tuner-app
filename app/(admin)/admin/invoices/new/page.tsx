@@ -304,6 +304,7 @@ function NewInvoiceContent() {
         notes: form.notes || null,
         payment_method: form.payment_method || null,
         appointment_id: appointmentId || null,
+        paid_date: form.status === "Paid" ? new Date().toISOString().split("T")[0] : null,
       }])
       .select("id")
       .single();
