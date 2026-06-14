@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "../../../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../AdminHeader";
@@ -48,6 +48,23 @@ export default function NewAppointment() {
     { piano_id: "", service_type: "" }
   ]);
 
+  // Client search state
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const [selectedClientName, setSelectedClientName] = useState("");
+  const clientSearchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (clientSearchRef.current && !clientSearchRef.current.contains(e.target as Node)) {
+        setClientDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -75,15 +92,37 @@ export default function NewAppointment() {
     setLoading(false);
   }
 
+  function clientNameFromObj(c: Client) {
+    if (c.company_name) return c.company_name;
+    return [c.first_name, c.last_name].filter(Boolean).join(" ");
+  }
+
+  // Filter clients based on search input
+  const filteredClients = clientSearch.trim().length === 0
+    ? []
+    : clients.filter((c) =>
+        clientNameFromObj(c).toLowerCase().includes(clientSearch.toLowerCase())
+      );
+
+  function selectClient(c: Client) {
+    setForm({ ...form, client_id: c.id });
+    setSelectedClientName(clientNameFromObj(c));
+    setClientSearch("");
+    setClientDropdownOpen(false);
+    setFilteredPianos(pianos.filter((p) => p.client_id === c.id));
+    setAppointmentPianos([{ piano_id: "", service_type: "" }]);
+  }
+
+  function clearClient() {
+    setForm({ ...form, client_id: "" });
+    setSelectedClientName("");
+    setClientSearch("");
+    setFilteredPianos([]);
+    setAppointmentPianos([{ piano_id: "", service_type: "" }]);
+  }
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    const { name, value } = e.target;
-    if (name === "client_id") {
-      setFilteredPianos(pianos.filter((p) => p.client_id === value));
-      setForm({ ...form, client_id: value });
-      setAppointmentPianos([{ piano_id: "", service_type: "" }]);
-    } else {
-      setForm({ ...form, [name]: value });
-    }
+    setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   function handlePianoChange(index: number, field: keyof AppointmentPiano, value: string) {
@@ -100,11 +139,6 @@ export default function NewAppointment() {
     setAppointmentPianos(appointmentPianos.filter((_, i) => i !== index));
   }
 
-  function clientName(c: Client) {
-    if (c.company_name) return c.company_name;
-    return [c.first_name, c.last_name].filter(Boolean).join(" ");
-  }
-
   function pianoName(p: Piano) {
     return [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
   }
@@ -113,6 +147,12 @@ export default function NewAppointment() {
     e.preventDefault();
     setSaving(true);
     setError("");
+
+    if (!form.client_id) {
+      setError("Please select a client.");
+      setSaving(false);
+      return;
+    }
 
     const appointmentDate = new Date(`${form.appointment_date}T${form.appointment_time}`);
     const supabase = createClient();
@@ -175,12 +215,89 @@ export default function NewAppointment() {
             <h2 className="form-section-title">Client</h2>
             <div className="form-field">
               <label>Client <span className="form-required">*</span></label>
-              <select name="client_id" value={form.client_id} onChange={handleChange} required>
-                <option value="">Select a client...</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{clientName(c)}</option>
-                ))}
-              </select>
+
+              {form.client_id ? (
+                // Client selected — show name with Change button
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input
+                    type="text"
+                    value={selectedClientName}
+                    disabled
+                    style={{ flex: 1, background: "#f4f4f4", color: "#1a1a1a", fontWeight: 600 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={clearClient}
+                    style={{ background: "none", border: "1px solid #aaa", borderRadius: "4px", padding: "0.4rem 0.75rem", cursor: "pointer", color: "#666", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                // Search input + dropdown
+                <div ref={clientSearchRef} style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    value={clientSearch}
+                    onChange={(e) => {
+                      setClientSearch(e.target.value);
+                      setClientDropdownOpen(true);
+                    }}
+                    onFocus={() => setClientDropdownOpen(true)}
+                    placeholder="Type to search clients..."
+                    autoComplete="off"
+                  />
+                  {clientDropdownOpen && filteredClients.length > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "0 0 6px 6px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                      zIndex: 100,
+                      maxHeight: "220px",
+                      overflowY: "auto",
+                    }}>
+                      {filteredClients.map((c) => (
+                        <div
+                          key={c.id}
+                          onMouseDown={() => selectClient(c)}
+                          style={{
+                            padding: "0.6rem 0.9rem",
+                            cursor: "pointer",
+                            fontSize: "0.95rem",
+                            borderBottom: "1px solid #f0f0f0",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "#f4f4f4")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                        >
+                          {clientNameFromObj(c)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {clientDropdownOpen && clientSearch.trim().length > 0 && filteredClients.length === 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "0 0 6px 6px",
+                      padding: "0.6rem 0.9rem",
+                      fontSize: "0.9rem",
+                      color: "#888",
+                      zIndex: 100,
+                    }}>
+                      No clients found matching "{clientSearch}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
