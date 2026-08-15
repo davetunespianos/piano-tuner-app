@@ -44,7 +44,8 @@ const SERVICE_RATES: Record<string, number> = {
   "Piano Life Saver Maintenance": 30,
   "Regulation": 50,
   "Voicing": 50,
-  "Repairs / Other": 50,
+  "Repairs": 50,
+  "School Discount": -20,
   "Piano Life Saver Installation": 0,
 };
 
@@ -365,7 +366,7 @@ function NewInvoiceContent() {
 
     const items = pianoGroups.flatMap((g) =>
       g.line_items
-        .filter((item) => item.description && item.line_total > 0)
+        .filter((item) => item.description && item.line_total !== 0)
         .map((item) => ({
           invoice_id: newInvoice.id,
           piano_id: g.piano_id,
