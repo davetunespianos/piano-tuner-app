@@ -627,7 +627,6 @@ function NewInvoiceContent() {
                             type="number"
                             value={item.unit_price}
                             onChange={(e) => handleLineItemChange(g.piano_id, index, "unit_price", e.target.value)}
-                            min="0"
                             step="0.01"
                             style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
                           />
