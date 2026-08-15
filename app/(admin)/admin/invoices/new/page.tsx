@@ -594,20 +594,23 @@ function NewInvoiceContent() {
                     {g.line_items.map((item, index) => (
                       <tr key={index}>
                         <td>
-                          <select
+                          <input
+                            list={`service-options-${g.piano_id}-${index}`}
                             value={item.description}
                             onChange={(e) => handleLineItemChange(g.piano_id, index, "description", e.target.value)}
+                            placeholder="Select or type a service..."
                             style={{ width: "100%", padding: "0.4rem", border: "1px solid #ddd", borderRadius: "4px", fontFamily: "inherit", fontSize: "0.9rem" }}
-                          >
-                            <option value="">Select a service...</option>
-                            <option value="Standard Tuning">Standard Tuning</option>
-                            <option value="Pitch Raise">Pitch Raise</option>
-                            <option value="Regulation">Regulation</option>
-                            <option value="Voicing">Voicing</option>
-                            <option value="Piano Life Saver Maintenance">Piano Life Saver Maintenance</option>
-                            <option value="Piano Life Saver Installation">Piano Life Saver Installation</option>
-                            <option value="Repairs / Other">Repairs / Other</option>
-                          </select>
+                          />
+                          <datalist id={`service-options-${g.piano_id}-${index}`}>
+                            <option value="Standard Tuning" />
+                            <option value="Pitch Raise" />
+                            <option value="Regulation" />
+                            <option value="Voicing" />
+                            <option value="Piano Life Saver Maintenance" />
+                            <option value="Piano Life Saver Installation" />
+                            <option value="Repairs" />
+                            <option value="School Discount" />
+                          </datalist>
                         </td>
                         <td>
                           <input
