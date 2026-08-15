@@ -26,6 +26,7 @@ export default function EditPiano() {
     model: "",
     serial_number: "",
     type: "",
+    location: "",
     notes: "",
     has_life_saver: false,
     is_active: true,
@@ -63,6 +64,7 @@ export default function EditPiano() {
         model: data.model || "",
         serial_number: data.serial_number || "",
         type: data.type || "",
+        location: data.location || "",
         notes: data.notes || "",
         has_life_saver: data.has_life_saver || false,
         is_active: data.is_active ?? true,
@@ -92,6 +94,7 @@ export default function EditPiano() {
         model: form.model || null,
         serial_number: form.serial_number || null,
         type: form.type || null,
+        location: form.location || null,
         notes: form.notes || null,
         has_life_saver: form.has_life_saver,
         is_active: form.is_active,
@@ -215,6 +218,17 @@ export default function EditPiano() {
                   onChange={handleChange}
                   placeholder="e.g. Grand, Upright, Baby Grand"
                 />
+              </div>
+              <div className="form-row">
+                <div className="form-field">
+                  <label>Location</label>
+                  <input
+                    name="location"
+                    value={form.location}
+                    onChange={handleChange}
+                    placeholder="e.g. Living Room, Music Room 2"
+                  />
+                </div>
               </div>
             </div>
             <div className="form-field" style={{ marginTop: "0.5rem" }}>

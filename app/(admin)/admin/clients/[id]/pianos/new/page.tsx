@@ -17,6 +17,7 @@ export default function NewPiano() {
     model: "",
     serial_number: "",
     type: "",
+    location: "",
     notes: "",
     has_life_saver: false,
   });
@@ -41,6 +42,7 @@ export default function NewPiano() {
       model: form.model || null,
       serial_number: form.serial_number || null,
       type: form.type || null,
+      location: form.location || null,
       notes: form.notes || null,
       has_life_saver: form.has_life_saver,
     }]);
@@ -109,6 +111,17 @@ export default function NewPiano() {
                   Piano Life Saver System Installed
                 </label>
               </div>  
+            </div>
+            <div className="form-row">
+              <div className="form-field">
+                <label>Location</label>
+                <input
+                  name="location"
+                  value={form.location}
+                  onChange={handleChange}
+                  placeholder="e.g. Living Room, Music Room 2"
+                />
+              </div>
             </div>
           </div>
           <div className="form-section">

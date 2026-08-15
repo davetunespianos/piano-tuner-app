@@ -23,6 +23,7 @@ type Piano = {
   make: string | null;
   model: string | null;
   type: string | null;
+  location: string | null;
 };
 
 type LineItem = {
@@ -50,7 +51,8 @@ const SERVICE_RATES: Record<string, number> = {
 };
 
 function pianoLabel(p: Piano): string {
-  return [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
+  const nameParts = [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
+  return p.location ? `${nameParts} - ${p.location}` : nameParts;
 }
 
 function emptyLineItem(): LineItem {
@@ -111,7 +113,7 @@ function NewInvoiceContent() {
     const supabase = createClient();
     supabase
       .from("pianos")
-      .select("id, make, model, type")
+      .select("id, make, model, type, location")
       .eq("client_id", form.client_id)
       .eq("is_active", true)
       .order("created_at", { ascending: true })
@@ -136,7 +138,7 @@ function NewInvoiceContent() {
           appointment_date,
           appointment_pianos (
             service_type,
-            pianos (id, make, model, type)
+            pianos (id, make, model, type, location)
           )
         `)
         .eq("id", appointmentId)
@@ -179,7 +181,7 @@ function NewInvoiceContent() {
 
         const { data: pianosData } = await supabase
           .from("pianos")
-          .select("id, make, model, type")
+          .select("id, make, model, type, location")
           .eq("client_id", appt.client_id)
           .eq("is_active", true)
           .order("created_at", { ascending: true });
