@@ -43,15 +43,19 @@ type LineItem = {
     make: string | null;
     model: string | null;
     type: string | null;
+    serial_number: string | null;
     location: string | null;
   } | null;
 };
 
 type Group = { key: string; label: string | null; items: LineItem[] };
 
-function pianoLabel(p: NonNullable<LineItem["pianos"]>): string {
-  const nameParts = [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
-  return p.location ? `${nameParts} - ${p.location}` : nameParts;
+function pianoLabel(p: { make: string | null; model: string | null; type: string | null; serial_number: string | null; location: string | null }): string {
+  const nameParts = [p.make, p.model, p.type].filter(Boolean).join(" ") || "Unnamed Piano";
+  const segments = [nameParts];
+  if (p.serial_number) segments.push(`Serial # ${p.serial_number}`);
+  if (p.location) segments.push(p.location);
+  return segments.join(" - ");
 }
 
 function groupByPiano(items: LineItem[]): Group[] {
@@ -107,7 +111,7 @@ export default function InvoiceDetail() {
       .from("invoice_items")
       .select(`
         id, description, quantity, unit_price, line_total, piano_id,
-        pianos (make, model, type, location)
+        pianos (make, model, type, serial_number, location)
       `)
       .eq("invoice_id", id)
       .order("created_at", { ascending: true });

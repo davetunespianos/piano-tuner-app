@@ -131,6 +131,8 @@ type LineItem = {
     make: string | null;
     model: string | null;
     type: string | null;
+    serial_number: string | null;
+    location: string | null;
   } | null;
 };
 
@@ -164,8 +166,12 @@ function formatDate(dateStr: string) {
     });
   }
 
-function pianoLabel(p: NonNullable<LineItem["pianos"]>): string {
-  return [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
+function pianoLabel(p: { make: string | null; model: string | null; type: string | null; serial_number: string | null; location: string | null }): string {
+  const nameParts = [p.make, p.model, p.type].filter(Boolean).join(" ") || "Unnamed Piano";
+  const segments = [nameParts];
+  if (p.serial_number) segments.push(`Serial # ${p.serial_number}`);
+  if (p.location) segments.push(p.location);
+  return segments.join(" - ");
 }
 
 // Group line items by piano. Items without a piano (legacy data) end up in a single "Other" group.

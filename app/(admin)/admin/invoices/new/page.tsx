@@ -23,6 +23,7 @@ type Piano = {
   make: string | null;
   model: string | null;
   type: string | null;
+  serial_number: string | null;
   location: string | null;
 };
 
@@ -50,9 +51,12 @@ const SERVICE_RATES: Record<string, number> = {
   "Piano Life Saver Installation": 0,
 };
 
-function pianoLabel(p: Piano): string {
-  const nameParts = [p.make, p.model].filter(Boolean).join(" ") || p.type || "Unnamed Piano";
-  return p.location ? `${nameParts} - ${p.location}` : nameParts;
+function pianoLabel(p: { make: string | null; model: string | null; type: string | null; serial_number: string | null; location: string | null }): string {
+  const nameParts = [p.make, p.model, p.type].filter(Boolean).join(" ") || "Unnamed Piano";
+  const segments = [nameParts];
+  if (p.serial_number) segments.push(`Serial # ${p.serial_number}`);
+  if (p.location) segments.push(p.location);
+  return segments.join(" - ");
 }
 
 function emptyLineItem(): LineItem {
@@ -113,7 +117,7 @@ function NewInvoiceContent() {
     const supabase = createClient();
     supabase
       .from("pianos")
-      .select("id, make, model, type, location")
+      .select("id, make, model, type, serial_number, location")
       .eq("client_id", form.client_id)
       .eq("is_active", true)
       .order("created_at", { ascending: true })
@@ -138,7 +142,7 @@ function NewInvoiceContent() {
           appointment_date,
           appointment_pianos (
             service_type,
-            pianos (id, make, model, type, location)
+            pianos (id, make, model, type, serial_number, location)
           )
         `)
         .eq("id", appointmentId)
@@ -181,7 +185,7 @@ function NewInvoiceContent() {
 
         const { data: pianosData } = await supabase
           .from("pianos")
-          .select("id, make, model, type, location")
+          .select("id, make, model, type, serial_number, location")
           .eq("client_id", appt.client_id)
           .eq("is_active", true)
           .order("created_at", { ascending: true });
