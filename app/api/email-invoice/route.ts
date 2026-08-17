@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       .from("invoice_items")
       .select(`
         id, description, quantity, unit_price, line_total, piano_id,
-        pianos (make, model, type)
+        pianos (make, model, type, serial_number, location)
       `)
       .eq("invoice_id", invoiceId)
       .order("created_at", { ascending: true });
