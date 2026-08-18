@@ -82,6 +82,12 @@ function NewInvoiceContent() {
   });
   const [pianoGroups, setPianoGroups] = useState<PianoGroup[]>([]);
   const [isNet30, setIsNet30] = useState(false);
+  const [altBillingEnabled, setAltBillingEnabled] = useState(false);
+  const [altBillingClientId, setAltBillingClientId] = useState("");
+  const [altBillingSearch, setAltBillingSearch] = useState("");
+  const [altBillingDropdownOpen, setAltBillingDropdownOpen] = useState(false);
+  const [selectedAltBillingName, setSelectedAltBillingName] = useState("");
+  const altBillingSearchRef = useRef<HTMLDivElement>(null);
 
   // Client search state
   const [clientSearch, setClientSearch] = useState("");
@@ -94,6 +100,9 @@ function NewInvoiceContent() {
     function handleClickOutside(e: MouseEvent) {
       if (clientSearchRef.current && !clientSearchRef.current.contains(e.target as Node)) {
         setClientDropdownOpen(false);
+      }
+      if (altBillingSearchRef.current && !altBillingSearchRef.current.contains(e.target as Node)) {
+        setAltBillingDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -214,6 +223,13 @@ function NewInvoiceContent() {
         clientNameFromObj(c).toLowerCase().includes(clientSearch.toLowerCase())
       );
 
+  const filteredAltBillingClients = altBillingSearch.trim().length === 0
+    ? []
+    : clients.filter((c) =>
+        clientNameFromObj(c).toLowerCase().includes(altBillingSearch.toLowerCase())
+      );
+
+
   function selectClient(c: Client) {
     setForm({ ...form, client_id: c.id });
     setSelectedClientName(clientNameFromObj(c));
@@ -227,6 +243,19 @@ function NewInvoiceContent() {
     setClientSearch("");
     setPianoGroups([]);
     setClientPianos([]);
+  }
+
+  function selectAltBillingClient(c: Client) {
+    setAltBillingClientId(c.id);
+    setSelectedAltBillingName(clientNameFromObj(c));
+    setAltBillingSearch("");
+    setAltBillingDropdownOpen(false);
+  }
+
+  function clearAltBillingClient() {
+    setAltBillingClientId("");
+    setSelectedAltBillingName("");
+    setAltBillingSearch("");
   }
 
   function handleFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
@@ -359,6 +388,7 @@ function NewInvoiceContent() {
         payment_method: form.payment_method || null,
         appointment_id: appointmentId || null,
         paid_date: form.status === "Paid" ? new Date().toISOString().split("T")[0] : null,
+        alt_billing_client_id: altBillingEnabled ? altBillingClientId || null : null,
       }])
       .select("id")
       .single();
@@ -501,6 +531,107 @@ function NewInvoiceContent() {
                 </div>
               )}
             </div>
+            <div className="form-field" style={{ marginTop: "1rem" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={altBillingEnabled}
+                  onChange={(e) => {
+                    setAltBillingEnabled(e.target.checked);
+                    if (!e.target.checked) clearAltBillingClient();
+                  }}
+                  style={{ width: "16px", height: "16px" }}
+                />
+                Alternate Billing
+              </label>
+            </div>
+
+            {altBillingEnabled && (
+              <div className="form-field">
+                <label>Bill To (Alternate)</label>
+
+                {altBillingClientId ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <input
+                      type="text"
+                      value={selectedAltBillingName}
+                      disabled
+                      style={{ flex: 1, background: "#f4f4f4", color: "#1a1a1a", fontWeight: 600 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={clearAltBillingClient}
+                      style={{ background: "none", border: "1px solid #aaa", borderRadius: "4px", padding: "0.4rem 0.75rem", cursor: "pointer", color: "#666", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div ref={altBillingSearchRef} style={{ position: "relative" }}>
+                    <input
+                    type="text"
+                      value={altBillingSearch}
+                      onChange={(e) => {
+                        setAltBillingSearch(e.target.value);
+                        setAltBillingDropdownOpen(true);
+                      }}
+                      onFocus={() => setAltBillingDropdownOpen(true)}
+                      placeholder="Type to search clients..."
+                      autoComplete="off"
+                    />
+                    {altBillingDropdownOpen && filteredAltBillingClients.length > 0 && (
+                      <div style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        background: "#fff",
+                        border: "1px solid #ddd",
+                        borderRadius: "0 0 6px 6px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        zIndex: 100,
+                        maxHeight: "220px",
+                        overflowY: "auto",
+                      }}>
+                        {filteredAltBillingClients.map((c) => (
+                          <div
+                            key={c.id}
+                            onMouseDown={() => selectAltBillingClient(c)}
+                            style={{
+                              padding: "0.6rem 0.9rem",
+                              cursor: "pointer",
+                              fontSize: "0.95rem",
+                              borderBottom: "1px solid #f0f0f0",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f4f4f4")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                          >
+                            {clientNameFromObj(c)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {altBillingDropdownOpen && altBillingSearch.trim().length > 0 && filteredAltBillingClients.length === 0 && (
+                      <div style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        background: "#fff",
+                        border: "1px solid #ddd",
+                        borderRadius: "0 0 6px 6px",
+                        padding: "0.6rem 0.9rem",
+                        fontSize: "0.9rem",
+                        color: "#888",
+                        zIndex: 100,
+                      }}>
+                        No clients found matching "{altBillingSearch}"
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Invoice Details */}

@@ -56,6 +56,14 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     marginBottom: 2,
   },
+  billToRow: {
+    flexDirection: "row",
+    gap: 40,
+    marginBottom: 24,
+  },
+  billToCol: {
+    flex: 1,
+  },
   pianoSection: {
     marginBottom: 18,
   },
@@ -145,6 +153,7 @@ type Props = {
     notes: string | null;
     payment_method: string | null;
     paid_date: string | null;
+    alt_billing_client_id: string | null;
     clients: {
       first_name: string;
       last_name: string | null;
@@ -155,6 +164,16 @@ type Props = {
       zip: string | null;
       phone: string | null;
     };
+    alt_billing_client?: {
+      first_name: string;
+      last_name: string | null;
+      company_name: string | null;
+      address: string | null;
+      city: string | null;
+      state: string | null;
+      zip: string | null;
+      phone: string | null;
+    } | null;
   };
   lineItems: LineItem[];
 };
@@ -217,16 +236,33 @@ export default function InvoicePDF({ invoice, lineItems }: Props) {
           </View>
         </View>
 
-        {/* Bill To */}
-        <View style={styles.billTo}>
-          <Text style={styles.billToLabel}>Bill To</Text>
-          <Text style={styles.billToName}>{clientName}</Text>
-          {client.company_name && (
-            <Text>{[client.first_name, client.last_name].filter(Boolean).join(" ")}</Text>
+        {/* Client / Bill To */}
+        <View style={styles.billToRow}>
+          <View style={styles.billToCol}>
+            <Text style={styles.billToLabel}>Client</Text>
+            <Text style={styles.billToName}>{clientName}</Text>
+            {client.company_name && (
+              <Text>{[client.first_name, client.last_name].filter(Boolean).join(" ")}</Text>
+            )}
+            {client.address && <Text>{client.address}</Text>}
+            <Text>{[client.city, client.state, client.zip].filter(Boolean).join(", ")}</Text>
+            {client.phone && <Text>{client.phone}</Text>}
+          </View>
+
+          {invoice.alt_billing_client_id && invoice.alt_billing_client && (
+            <View style={styles.billToCol}>
+              <Text style={styles.billToLabel}>Bill To</Text>
+              <Text style={styles.billToName}>
+                {invoice.alt_billing_client.company_name || [invoice.alt_billing_client.first_name, invoice.alt_billing_client.last_name].filter(Boolean).join(" ")}
+              </Text>
+              {invoice.alt_billing_client.company_name && (
+                <Text>{[invoice.alt_billing_client.first_name, invoice.alt_billing_client.last_name].filter(Boolean).join(" ")}</Text>
+              )}
+              {invoice.alt_billing_client.address && <Text>{invoice.alt_billing_client.address}</Text>}
+              <Text>{[invoice.alt_billing_client.city, invoice.alt_billing_client.state, invoice.alt_billing_client.zip].filter(Boolean).join(", ")}</Text>
+              {invoice.alt_billing_client.phone && <Text>{invoice.alt_billing_client.phone}</Text>}
+            </View>
           )}
-          {client.address && <Text>{client.address}</Text>}
-          <Text>{[client.city, client.state, client.zip].filter(Boolean).join(", ")}</Text>
-          {client.phone && <Text>{client.phone}</Text>}
         </View>
 
         {/* Line Items, grouped by piano */}

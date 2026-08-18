@@ -17,6 +17,7 @@ type Invoice = {
   notes: string | null;
   payment_method: string | null;
   paid_date: string | null;
+  alt_billing_client_id: string | null;
   clients: {
     id: string;
     first_name: string;
@@ -30,6 +31,19 @@ type Invoice = {
     email: string | null;
     alternate_email: string | null;
   };
+  alt_billing_client: {
+    id: string;
+    first_name: string;
+    last_name: string | null;
+    company_name: string | null;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+    phone: string | null;
+    email: string | null;
+    alternate_email: string | null;
+  } | null;
 };
 
 type LineItem = {
@@ -80,6 +94,8 @@ export default function InvoiceDetail() {
   const [showEmailPicker, setShowEmailPicker] = useState(false);
   const [emailToPrimary, setEmailToPrimary] = useState(true);
   const [emailToAlternate, setEmailToAlternate] = useState(false);
+  const [emailToBillingPrimary, setEmailToBillingPrimary] = useState(false);
+  const [emailToBillingAlternate, setEmailToBillingAlternate] = useState(false);
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -101,8 +117,9 @@ export default function InvoiceDetail() {
       .from("invoices")
       .select(`
         id, invoice_number, invoice_date, due_date, status,
-        notes, payment_method, paid_date,
-        clients (id, first_name, last_name, company_name, address, city, state, zip, phone, email, alternate_email)
+        notes, payment_method, paid_date, alt_billing_client_id,
+        clients!invoices_client_id_fkey (id, first_name, last_name, company_name, address, city, state, zip, phone, email, alternate_email),
+        alt_billing_client:clients!invoices_alt_billing_client_id_fkey (id, first_name, last_name, company_name, address, city, state, zip, phone, email, alternate_email)
       `)
       .eq("id", id)
       .single();
@@ -153,12 +170,20 @@ export default function InvoiceDetail() {
 
   function openEmailPicker() {
     if (!invoice) return;
-    if (!invoice.clients.email && !invoice.clients.alternate_email) {
+    const hasBilling = invoice.alt_billing_client_id && invoice.alt_billing_client;
+    const noEmailsAtAll =
+      !invoice.clients.email && !invoice.clients.alternate_email &&
+      !(hasBilling && invoice.alt_billing_client?.email) &&
+      !(hasBilling && invoice.alt_billing_client?.alternate_email);
+
+    if (noEmailsAtAll) {
       alert("This client has no email addresses on file.");
       return;
     }
     setEmailToPrimary(!!invoice.clients.email);
     setEmailToAlternate(!!invoice.clients.alternate_email);
+    setEmailToBillingPrimary(!!(hasBilling && invoice.alt_billing_client?.email));
+    setEmailToBillingAlternate(!!(hasBilling && invoice.alt_billing_client?.alternate_email));
     setShowEmailPicker(true);
   }
 
@@ -167,6 +192,8 @@ export default function InvoiceDetail() {
     const recipients: string[] = [];
     if (emailToPrimary && invoice.clients.email) recipients.push(invoice.clients.email);
     if (emailToAlternate && invoice.clients.alternate_email) recipients.push(invoice.clients.alternate_email);
+    if (emailToBillingPrimary && invoice.alt_billing_client?.email) recipients.push(invoice.alt_billing_client.email);
+    if (emailToBillingAlternate && invoice.alt_billing_client?.alternate_email) recipients.push(invoice.alt_billing_client.alternate_email);
 
     if (recipients.length === 0) {
       alert("Please select at least one recipient.");
@@ -314,20 +341,39 @@ export default function InvoiceDetail() {
             </div>
           </div>
 
-          {/* Bill to */}
-          <div style={{ marginBottom: "2rem" }}>
-            <div style={{ fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#aaa", marginBottom: "0.5rem" }}>
-              Bill To
+          {/* Client / Bill To */}
+          <div style={{ display: "flex", gap: "3rem", marginBottom: "2rem" }}>
+            <div>
+              <div style={{ fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#aaa", marginBottom: "0.5rem" }}>
+                Client
+              </div>
+              <div style={{ fontSize: "0.95rem", lineHeight: 1.6 }}>
+                <strong>{clientName(invoice.clients)}</strong><br />
+                {invoice.clients.company_name && (
+                  <>{[invoice.clients.first_name, invoice.clients.last_name].filter(Boolean).join(" ")}<br /></>
+                )}
+                {invoice.clients.address && <>{invoice.clients.address}<br /></>}
+                {[invoice.clients.city, invoice.clients.state, invoice.clients.zip].filter(Boolean).join(", ")}
+                {invoice.clients.phone && <><br />{invoice.clients.phone}</>}
+              </div>
             </div>
-            <div style={{ fontSize: "0.95rem", lineHeight: 1.6 }}>
-              <strong>{clientName(invoice.clients)}</strong><br />
-              {invoice.clients.company_name && (
-                <>{[invoice.clients.first_name, invoice.clients.last_name].filter(Boolean).join(" ")}<br /></>
-              )}
-              {invoice.clients.address && <>{invoice.clients.address}<br /></>}
-              {[invoice.clients.city, invoice.clients.state, invoice.clients.zip].filter(Boolean).join(", ")}
-              {invoice.clients.phone && <><br />{invoice.clients.phone}</>}
-            </div>
+
+            {invoice.alt_billing_client_id && invoice.alt_billing_client && (
+              <div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#aaa", marginBottom: "0.5rem" }}>
+                  Bill To
+                </div>
+                <div style={{ fontSize: "0.95rem", lineHeight: 1.6 }}>
+                  <strong>{clientName(invoice.alt_billing_client)}</strong><br />
+                  {invoice.alt_billing_client.company_name && (
+                    <>{[invoice.alt_billing_client.first_name, invoice.alt_billing_client.last_name].filter(Boolean).join(" ")}<br /></>
+                  )}
+                  {invoice.alt_billing_client.address && <>{invoice.alt_billing_client.address}<br /></>}
+                  {[invoice.alt_billing_client.city, invoice.alt_billing_client.state, invoice.alt_billing_client.zip].filter(Boolean).join(", ")}
+                  {invoice.alt_billing_client.phone && <><br />{invoice.alt_billing_client.phone}</>}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Line items, grouped by piano */}
@@ -459,6 +505,30 @@ export default function InvoiceDetail() {
                 </label>
               )}
 
+              {invoice.alt_billing_client_id && invoice.alt_billing_client?.email && (
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={emailToBillingPrimary}
+                    onChange={(e) => setEmailToBillingPrimary(e.target.checked)}
+                    style={{ width: "16px", height: "16px" }}
+                  />
+                  <span>{invoice.alt_billing_client.email} <span style={{ color: "#888", fontSize: "0.85rem" }}>(bill to)</span></span>
+                </label>
+              )}
+
+              {invoice.alt_billing_client_id && invoice.alt_billing_client?.alternate_email && (
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={emailToBillingAlternate}
+                    onChange={(e) => setEmailToBillingAlternate(e.target.checked)}
+                    style={{ width: "16px", height: "16px" }}
+                  />
+                  <span>{invoice.alt_billing_client.alternate_email} <span style={{ color: "#888", fontSize: "0.85rem" }}>(bill to alternate)</span></span>
+                </label>
+              )}
+
               <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
                 <button
                   onClick={() => setShowEmailPicker(false)}
@@ -469,7 +539,7 @@ export default function InvoiceDetail() {
                 <button
                   onClick={sendInvoiceEmail}
                   className="admin-btn"
-                  disabled={!emailToPrimary && !emailToAlternate}
+                  disabled={!emailToPrimary && !emailToAlternate && !emailToBillingPrimary && !emailToBillingAlternate}
                 >
                   Send
                 </button>

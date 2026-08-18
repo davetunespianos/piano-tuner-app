@@ -14,8 +14,10 @@ export async function POST(request: NextRequest) {
       .from("invoices")
       .select(`
         id, invoice_number, invoice_date, due_date, status,
-        notes, payment_method, paid_date,
-        clients (first_name, last_name, company_name, address, city, state, zip, phone, email, alternate_email)
+        notes, payment_method, paid_date, alt_billing_client_id, appointment_id,
+        clients!invoices_client_id_fkey (first_name, last_name, company_name, address, city, state, zip, phone, email, alternate_email),
+        alt_billing_client:clients!invoices_alt_billing_client_id_fkey (first_name, last_name, company_name, address, city, state, zip, phone, email, alternate_email),
+        appointments (appointment_date)
       `)
       .eq("id", invoiceId)
       .single();
@@ -36,11 +38,13 @@ export async function POST(request: NextRequest) {
       .order("created_at", { ascending: true });
 
     const client = inv.clients as any;
+    const altBillingClient = inv.alt_billing_client as any;
+    const billingContact = (inv.alt_billing_client_id && altBillingClient) ? altBillingClient : client;
 
-    // Determine recipients: use what the caller passed in, or fall back to primary email
+    // Determine recipients: use what the caller passed in, or fall back to billing contact's primary email
     const toAddresses: string[] = Array.isArray(recipients) && recipients.length > 0
       ? recipients.filter((e: any) => typeof e === "string" && e.trim().length > 0)
-      : (client?.email ? [client.email] : []);
+      : (billingContact?.email ? [billingContact.email] : []);
 
     if (toAddresses.length === 0) {
       return NextResponse.json({ error: "No recipient email addresses provided" }, { status: 400 });
@@ -55,7 +59,23 @@ export async function POST(request: NextRequest) {
 
     const subject = `Invoice #${inv.invoice_number} from David Cossey - Piano Tuner`;
     const total = (items || []).reduce((sum: number, item: any) => sum + item.line_total, 0);
-    const bodyText = `Hi ${client.first_name},\n\nHere is a copy of your invoice for piano tuning/repair services. This invoice has a balance due of $${total.toFixed(2)}. Thank you for the opportunity to serve you and your piano.\n\nThank you,\n\nDavid Cossey - Piano Tuner\n734-812-8096\ndavetunespianos@gmail.com\ndavidcosseypianotuner.com`;
+    const orgName = client.company_name || null;
+    const appointmentDate = (inv.appointments as any)?.appointment_date || null;
+
+    function formatEmailDate(dateStr: string) {
+      const [year, month, day] = dateStr.slice(0, 10).split("-").map(Number);
+      return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+        month: "long", day: "numeric", year: "numeric"
+      });
+    }
+
+    const serviceDate = appointmentDate ? formatEmailDate(appointmentDate) : formatEmailDate(inv.invoice_date);
+
+    const openingLine = orgName
+      ? `Here is a copy of the invoice for ${orgName}'s piano tuning/repair services rendered on ${serviceDate}.`
+      : `Here is a copy of your invoice for piano tuning/repair services rendered on ${serviceDate}.`;
+
+    const bodyText = `Hi ${billingContact.first_name},\n\n${openingLine} This invoice has a balance due of $${total.toFixed(2)}. Thank you for the opportunity to serve you and your piano.\n\nThank you,\n\nDavid Cossey - Piano Tuner\n734-812-8096\ndavetunespianos@gmail.com\ndavidcosseypianotuner.com`;
 
     const boundary = "invoice_boundary_xyz";
     const pdfBase64 = pdfBuffer.toString("base64");

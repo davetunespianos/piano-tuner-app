@@ -51,7 +51,7 @@ export default function InvoiceList() {
         due_date,
         status,
         payment_method,
-        clients (first_name, last_name, company_name),
+        clients!invoices_client_id_fkey (first_name, last_name, company_name),
         invoice_items (line_total)
       `)
       .order("invoice_number", { ascending: false });
