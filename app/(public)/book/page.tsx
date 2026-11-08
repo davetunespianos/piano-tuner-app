@@ -107,14 +107,14 @@ export default function BookPage() {
     return (
       <main className="page-content">
         <div style={{ textAlign: "center", padding: "3rem 0" }}>
-          <h2 style={{ marginBottom: "1rem" }}>Appointment Requested!</h2>
-          <p>Thank you, {form.first_name}. Your appointment request has been received for:</p>
+          <h2 style={{ marginBottom: "1rem" }}>Appointment Scheduled!</h2>
+          <p>Thank you, {form.first_name}. Your appointment has been scheduled for:</p>
           <p style={{ fontWeight: 600, margin: "1rem 0" }}>
             {selectedDate?.toLocaleDateString("en-US", {
               weekday: "long", month: "long", day: "numeric", year: "numeric"
             })} at {formatTime(form.time)}
           </p>
-          <p>A confirmation email will be sent to {form.email}.</p>
+          <p>A confirmation email will be sent to {form.email}. If you have not received an email within a few minutes, please check your spam/junk folder.</p>
           <Link href="/" style={{ color: "#1a1a1a", marginTop: "2rem", display: "inline-block" }}>
             Return to Home
           </Link>
@@ -125,9 +125,10 @@ export default function BookPage() {
 
   return (
     <main className="page-content">
-      <h2>Request an Appointment</h2>
+      <h2>Schedule an Appointment</h2>
       <p style={{ marginBottom: "2rem" }}>
-        Please fill out the form below to request an appointment and Dave will confirm your appointment by email.
+        Please fill out the form below to schedule an appointment.<br />
+        Once you click the "Schedule Appointment" button you will receive an automated confirmation email.
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -274,7 +275,7 @@ export default function BookPage() {
               opacity: (!form.date || !form.time) ? 0.5 : 1
             }}
           >
-            {submitting ? "Submitting..." : "Request Appointment"}
+            {submitting ? "Submitting..." : "Schedule Appointment"}
           </button>
         </div>
 

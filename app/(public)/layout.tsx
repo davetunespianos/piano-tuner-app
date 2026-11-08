@@ -21,7 +21,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </Link>
         <ul className="nav-links">
           <li><Link href="/services">Services and Rates</Link></li>
-          <li><Link href="/book">Request an Appointment</Link></li>
+          <li><Link href="/book">Schedule an Appointment</Link></li>
           <li><Link href="/contact">Contact Dave</Link></li>
           <li><Link href="/about">About</Link></li>
           <li><Link href="/faq">FAQs</Link></li>
@@ -39,7 +39,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <div className={menuOpen ? "mobile-menu active" : "mobile-menu"}>
         <ul>
           <li><Link href="/services" onClick={() => setMenuOpen(false)}>Services and Rates</Link></li>
-          <li><Link href="/book" onClick={() => setMenuOpen(false)}>Request an Appointment</Link></li>
+          <li><Link href="/book" onClick={() => setMenuOpen(false)}>Schedule an Appointment</Link></li>
           <li><Link href="/contact" onClick={() => setMenuOpen(false)}>Contact Dave</Link></li>
           <li><Link href="/about" onClick={() => setMenuOpen(false)}>About</Link></li>
           <li><Link href="/faq" onClick={() => setMenuOpen(false)}>FAQs</Link></li>
@@ -54,7 +54,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         />
         <ul className="footer-links">
           <li><Link href="/services">Services and Rates</Link></li>
-          <li><Link href="/book">Request an Appointment</Link></li>
+          <li><Link href="/book">Schedule an Appointment</Link></li>
           <li><Link href="/contact">Contact Dave</Link></li>
           <li><Link href="/about">About</Link></li>
           <li><Link href="/faq">FAQs</Link></li>

@@ -17,7 +17,7 @@ export default function Contact() {
         </a>
       </p>
       <p>
-        <strong>Service area:</strong> Lenawee, Monroe, Washtenaw, and Wayne Counties
+        <strong>Service area:</strong> all of Lenawee, Monroe, and Washtenaw Counties, and parts of Wayne County
       </p>
     </main>
   );
