@@ -41,8 +41,8 @@ type PianoGroup = {
 };
 
 const SERVICE_RATES: Record<string, number> = {
-  "Standard Tuning": 100,
-  "Pitch Raise": 125,
+  "Standard Tuning": 120,
+  "Pitch Raise & Tuning": 150,
   "Piano Life Saver Maintenance": 30,
   "Regulation": 50,
   "Voicing": 50,
@@ -741,7 +741,7 @@ function NewInvoiceContent() {
                           />
                           <datalist id={`service-options-${g.piano_id}-${index}`}>
                             <option value="Standard Tuning" />
-                            <option value="Pitch Raise" />
+                            <option value="Pitch Raise & Tuning" />
                             <option value="Regulation" />
                             <option value="Voicing" />
                             <option value="Piano Life Saver Maintenance" />

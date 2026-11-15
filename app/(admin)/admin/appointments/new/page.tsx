@@ -328,7 +328,7 @@ export default function NewAppointment() {
                   >
                     <option value="">Select a service...</option>
                     <option value="Standard Tuning">Standard Tuning</option>
-                    <option value="Pitch Raise">Pitch Raise</option>
+                    <option value="Pitch Raise & Tuning">Pitch Raise & Tuning</option>
                     <option value="Regulation">Regulation</option>
                     <option value="Voicing">Voicing</option>
                     <option value="Piano Life Saver Maintenance">Piano Life Saver Maintenance</option>

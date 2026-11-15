@@ -7,11 +7,11 @@ export default function Services() {
       <ul className="service-list">
         <li>
           <span>Standard Tuning</span>
-          <span className="service-price">$100</span>
+          <span className="service-price">$120</span>
         </li>
         <li>
           <span>Pitch Raise with Tuning</span>
-          <span className="service-price">$125</span>
+          <span className="service-price">$150</span>
         </li>
         <li>
           <span>Action Repair or Regulation</span>
