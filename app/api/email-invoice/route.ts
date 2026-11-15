@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
 
     const subject = `Invoice #${inv.invoice_number} from David Cossey - Piano Tuner`;
     const total = (items || []).reduce((sum: number, item: any) => sum + item.line_total, 0);
+    const isPaid = inv.status === "Paid";
+    const amountDue = isPaid ? 0 : total;
     const orgName = client.company_name || null;
     const appointmentDate = (inv.appointments as any)?.appointment_date || null;
 
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
       ? `Here is a copy of the invoice for ${orgName}'s piano tuning/repair services rendered on ${serviceDate}.`
       : `Here is a copy of your invoice for piano tuning/repair services rendered on ${serviceDate}.`;
 
-    const bodyText = `Hi ${billingContact.first_name},\n\n${openingLine} This invoice has a balance due of $${total.toFixed(2)}. Thank you for the opportunity to serve you and your piano.\n\nThank you,\n\nDavid Cossey - Piano Tuner\n734-812-8096\ndavetunespianos@gmail.com\ndavidcosseypianotuner.com`;
+    const bodyText = `Hi ${billingContact.first_name},\n\n${openingLine} ${isPaid ? `This invoice has been paid in full, with a balance of $0.00. Thank you for your payment.` : `This invoice has a balance due of $${amountDue.toFixed(2)}.`} Thank you for the opportunity to serve you and your piano.\n\nThank you,\n\nDavid Cossey - Piano Tuner\n734-812-8096\ndavetunespianos@gmail.com\ndavidcosseypianotuner.com`;
 
     const boundary = "invoice_boundary_xyz";
     const pdfBase64 = pdfBuffer.toString("base64");
@@ -116,10 +118,12 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error?.message || "Gmail API error");
 
-    await supabase
+    if (inv.status !== "Paid") {
+      await supabase
       .from("invoices")
       .update({ status: "Sent" })
       .eq("id", invoiceId);
+    }
 
     return NextResponse.json({ success: true, recipients: toAddresses });
   } catch (error: any) {
