@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       ? `Here is a copy of the invoice for ${orgName}'s piano tuning/repair services rendered on ${serviceDate}.`
       : `Here is a copy of your invoice for piano tuning/repair services rendered on ${serviceDate}.`;
 
-    const bodyText = `Hi ${billingContact.first_name},\n\n${openingLine} ${isPaid ? `This invoice has been paid in full, with a balance of $0.00. Thank you for your payment.` : `This invoice has a balance due of $${amountDue.toFixed(2)}.`} Thank you for the opportunity to serve you and your piano.\n\nThank you,\n\nDavid Cossey - Piano Tuner\n734-812-8096\ndavetunespianos@gmail.com\ndavidcosseypianotuner.com`;
+    const bodyText = `Hi ${billingContact.first_name},\n\n${openingLine} \n\n${isPaid ? `This invoice has been paid in full, with a balance of $0.00. Thank you for your payment.` : `This invoice has a balance due of $${amountDue.toFixed(2)}.`} \n\nThank you for the opportunity to serve you and your piano.\n\nThank you,\n\nDavid Cossey - Piano Tuner\n734-812-8096\ndavetunespianos@gmail.com\ndavidcosseypianotuner.com`;
 
     const boundary = "invoice_boundary_xyz";
     const pdfBase64 = pdfBuffer.toString("base64");
